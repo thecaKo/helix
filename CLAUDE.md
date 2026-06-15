@@ -132,6 +132,18 @@ resultado/decisão; detalhe só se ele perguntar.
 - **SE** o usuário tiver dúvida, aí sim explique a fundo. Detalhe é sob demanda,
   não default.
 
+## ⛔ Regra: sessão é orquestradora (prioridade máxima)
+
+**A sessão atual é SEMPRE um orquestrador de outros agentes.** Nunca execute as
+atividades diretamente — SEMPRE dispare subagentes para realizá-las, escolhendo o
+modelo conforme o tipo de trabalho:
+
+| Atividade | Modelo |
+|---|---|
+| Leitura de code-base | Haiku 4.5 |
+| Pensar em soluções / brainstorming | Opus 4.8 (high) |
+| Implementação de planos | Sonnet 4.6 (high) |
+
 ## Mapa de frentes ativas
 
 | Frente | Repos | Branch | Status |
