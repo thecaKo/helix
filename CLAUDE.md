@@ -103,6 +103,35 @@ skills de plugin).
   clonado, gitignored).
 - Design da decisão: `sdd/specs/2026-06-10-fast-plan-exec-design.md`.
 
+## ⛔ Regra: comentários no código (prioridade máxima)
+
+**O código é a documentação. Comentário só onde for ESTRITAMENTE necessário.**
+
+- **NÃO** escreva comentários que narram o que o código já diz (ex.: `// valida
+  16MB` acima de `if (size > MAX)`), JSDoc que repete o nome da função/parâmetros,
+  comentários de "seção"/etapa, ou descrições do **o quê**. Prefira nomes claros de
+  variáveis/funções a um comentário explicando um nome ruim.
+- **Comente apenas o PORQUÊ não-óbvio**: um gotcha, um contrato externo, uma decisão
+  contra-intuitiva, o motivo de um workaround. Se um dev competente entende lendo o
+  código, não comente.
+- Mantenha comentários necessários **curtos** (1 linha quando possível). Sem blocos
+  prolixos.
+- Vale para todos os repos e para código gerado por IA — IA tende a comentar demais;
+  reduza antes de commitar/abrir PR.
+
+## ⛔ Regra: resposta ESTRITAMENTE resumida (prioridade máxima)
+
+**Escreva o mínimo. O usuário não lê 80% do texto longo.** Vá direto ao
+resultado/decisão; detalhe só se ele perguntar.
+
+- Padrão: 1–3 linhas. Sem preâmbulo, sem recapitular o que foi pedido, sem
+  resumir o que acabou de fazer, sem "próximos passos" não solicitados.
+- Nada de listar opções que não vai seguir nem narrar raciocínio. Dê a
+  conclusão/recomendação; a justificativa só se perguntada.
+- Código/diagnóstico falam por si — não os reescreva em prosa.
+- **SE** o usuário tiver dúvida, aí sim explique a fundo. Detalhe é sob demanda,
+  não default.
+
 ## Mapa de frentes ativas
 
 | Frente | Repos | Branch | Status |
