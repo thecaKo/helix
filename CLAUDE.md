@@ -59,6 +59,23 @@ errar, pedir a cidade na hora.
   `infra-pharma-chat-bot-staging`) permanecem em `main`. Não crie `develop` nesses
   sem pedir; se surgir um repo novo sem `develop`, pergunte qual branch base usar.
 
+## ⛔ Regra: pasta `hotfixes/` parte SEMPRE de `main` (prioridade máxima)
+
+**A pasta `hotfixes/` é o análogo de `worktrees/` para correções urgentes: toda
+worktree criada ali DEVE partir da branch `main` do repo raiz — nunca de `develop`.**
+
+- Use `hotfixes/<slug>/<repo>/` para hotfix que precisa ir direto a produção; use
+  `worktrees/<frente>/<repo>/` (base `develop`) para o desenvolvimento normal.
+- Ao criar a worktree de hotfix, baseie a branch em `origin/main` atualizada (`git
+  fetch origin main` → `git worktree add "hotfixes/<slug>/<repo>" -b
+  "hotfix/<slug>" origin/main`), nunca na branch em que o repo raiz estiver.
+- Continua valendo a regra acima: **os repos raiz permanecem em `develop`** — o
+  `main` vive apenas nas worktrees de `hotfixes/`, jamais no repo raiz.
+- **Exceção:** repos sem `main` usam a branch de produção equivalente; na dúvida,
+  pergunte qual é a branch base de produção antes de criar a worktree.
+- `hotfixes/` é gerenciada pelo helix e fica **fora do git** (gitignored), como
+  `worktrees/`.
+
 ## ⛔ Regra de design de frontend (prioridade máxima)
 
 **Antes de QUALQUER alteração de design/UI no frontend, carregue o [`design.md`](./design.md)
@@ -152,6 +169,9 @@ modelo conforme o tipo de trabalho:
 | feat-dashboard-v2 | web-pharmachatbot, neo-api-pharmachatbot, api-pharmachatbot | feat/dashboard-v2 | em andamento — Dashboard v2 (neo a partir de origin/neo-dashboard; api-pharmachatbot adicionado p/ migration Sequelize do schema `dashboard_outbox_events`) |
 | feat-pharma-agent-v2 | pharma-agent-v2, web-pharmachatbot, neo-api-pharmachatbot | feat/pharma-agent-v2 | em andamento — desenvolvimento do pharma-agent-v2 (web + neo) |
 | feat-relatorios-v2 | web-pharmachatbot, neo-api-pharmachatbot, api-pharmachatbot | feat/relatorios-v2 | PRs abertas — neo#386, web#1693, api#2005 (tela v2 por flag `relatorios-v2`, 8 relatórios reais); plano em sdd/plans/2026-06-10-relatorios-v2-tasks.md |
+| feat-hos-integration | web-pharmachatbot, neo-api-pharmachatbot, api-pharmachatbot | feat/hos-integration | PRs abertas — neo#431, web#1716; integração HOS (card web ao lado da Trier + módulo Nest `hos-integration` no neo); api-pharmachatbot adicionado p/ replicar as 3 tabelas Drizzle em migrations Sequelize do banco compartilhado |
+| feat-alpha7-integration | web-pharmachatbot, neo-api-pharmachatbot | feat/alpha7-integration | em andamento — stackar integração Alpha7/A7Pharma sobre a infra da HOS, reusando canônicas `integration_products`/`integration_product_stock` (source='alpha7') e registry `company_integrations`; fonte é banco intermediário (MySQL/Postgres) lido por cron, não API HTTP |
+| fix-login-plans | web-pharmachatbot, neo-api-pharmachatbot, api-pharmachatbot | fix/login-plans | em andamento — correção do fluxo de login relacionado a planos (company plan) |
 
 ## Skill helix
 

@@ -19,6 +19,9 @@ bot.env
 # Worktrees gerenciados pelo helix
 worktrees/
 
+# Hotfixes (worktrees a partir de main) gerenciados pelo helix
+hotfixes/
+
 # Repositórios da base (clonados aqui, não versionar dentro do helix)
 pharma-agent-v2/
 api-baileys-pharmachatbot/
