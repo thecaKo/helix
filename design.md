@@ -14,6 +14,19 @@ colors:
   primary-base: '#e6284a'
   primary-dark: '#cc2443'
   primary-darker: '#a31c34'
+  # Tints de primary (escala fina) — superfícies/badges WABA; dark mode invertido em global.ts
+  primary-50: '#fff0f2'   # fundo muito leve (botão/item selecionado WABA)
+  primary-100: '#ffd6dc'  # tint leve (badge de template / hover)
+  primary-300: '#f58aa0'  # borda leve (WabaTemplateButton border)
+  primary-600: '#cc2443'  # texto em fundo claro (primary-dark)
+  primary-700: '#a31c34'  # texto em fundo mais escuro (primary-darker)
+  # Tints semânticos (alertas de superfície) — usados nos alertas WABA; dark mode em global.ts
+  error-50: '#fff0f0'     # fundo do alerta de janela expirada
+  error-600: '#E31C3D'    # texto/ícone do alerta de expiração (= danger-base)
+  warning-50: '#fffbeb'   # fundo do alerta de janela pendente
+  warning-600: '#CA9318'  # texto/ícone do alerta pendente (= warning-dark)
+  # Tom extra-claro de superfície (abaixo de gray-100)
+  gray-50: '#FCFCFD'      # fundo de PreviewCard no WabaTemplatePicker
   # Feedback
   success-light: '#94BFA2'
   success-base: '#3bb354'
@@ -279,6 +292,56 @@ Alinhamento: títulos e textos de cartão à esquerda; conteúdo de entrada (Log
 estados vazios centralizados; ações de rodapé de modal justificadas (`space-between`
 ou `flex-end`).
 
+## Responsivo & Overlays
+
+A tela **Atendimentos v2** adota um comportamento responsivo no padrão WhatsApp:
+em telas pequenas as colunas (lista ↔ conversa) viram **painéis em tela cheia /
+bottom-sheets** sobre um dimmer, em vez de coexistirem lado a lado.
+
+### Breakpoints nomeados
+
+| Nome | Faixa |
+|---|---|
+| `small` | `< 480px` |
+| `mobile` | `< 768px` |
+| `tablet` | `768px – 1023px` |
+| `desktop` | `≥ 1024px` |
+
+> Esses são os breakpoints **canônicos do responsivo de Atendimentos v2**. Os
+> valores recorrentes citados em **Layout** (640/768/900/1024/1100/1200) seguem
+> válidos para as grades de Dashboard/PharmaConnector; novas telas responsivas
+> usam os nomes acima.
+
+### Backdrop / dimmer
+
+| Token | Valor | Uso |
+|---|---|---|
+| `--color-backdrop` | `rgba(0, 0, 0, 0.5)` | dimmer atrás de overlay/sheet (mobile/tablet) |
+
+> `--color-backdrop` é o **único** valor de cor novo desta seção — fonte em
+> `src/styles/global.ts`. Não introduza outro preto translúcido para dimmer;
+> reuse este token.
+
+### Sheet (painel em tela cheia / bottom-sheet)
+
+- **Raio superior:** reusa `var(--border-radius-hero)` (**22px**) nos cantos de topo do
+  bottom-sheet; painel em tela cheia pode dispensar raio.
+- **Sombra:** reusa `SHADOW_LG` (ver Elevation & Depth) — sem sombra nova.
+- **Altura:** em **mobile/tablet** use `100dvh` / `100svh` para o painel cheio —
+  **nunca** `100vh` (evita o pulo da barra de URL móvel). O `100svh` é o piso
+  seguro; `100dvh` acompanha a viewport dinâmica.
+
+### Durações de slide
+
+| Transição | Token | Valor |
+|---|---|---|
+| Entrada (slide-in) do painel/sheet | `var(--animation-normal)` | 300ms |
+| Saída (slide-out) do painel/sheet | `var(--animation-fast)` | 200ms |
+
+Easing `cubic-bezier(0.4, 0, 0.2, 1)` (material). **Toda** essa animação de slide
+é obrigatoriamente embrulhada em `@media (prefers-reduced-motion: no-preference)`;
+sob movimento reduzido a troca de painel é instantânea.
+
 ## Elevation & Depth
 
 Profundidade por **sombras difusas de baixa opacidade** + vidro fosco, não por
@@ -332,6 +395,13 @@ Secundário: fundo branco, borda `rgba(0,0,0,0.06)`, `padding: 0.6rem 1rem`,
 `radius 12px`, peso 600; hover funde marca a 4% no fundo e 20% na borda. Terciário:
 transparente sem borda, hover com fundo `color-mix(primary 6%)`.
 
+**Botão de ícone circular** (ações de composer "+"/emoji em Atendimentos v2):
+`2rem` quadrado, `radius full`, fundo transparente; **hover** ganha fundo circular
+cinza-neutro `gray-200` (`--aliases-200`) e ícone `gray-700`; **clique** dispara o
+pulse `pressPulse` (ver Animation & Motion). Para ação primária de envio, o botão é
+sólido vermelho (ver botão primário) — o botão de **gravar áudio** ocioso reusa
+exatamente esse fundo/estados (vermelho + hover/press do envio).
+
 ### Inputs
 Container flex com ícone (lucide, `size 18`, `strokeWidth 1.8`) + campo. Fundo
 `rgba(255,255,255,0.85)`, `radius 0.75rem`, borda `rgba(0,0,0,0.06)`,
@@ -358,6 +428,13 @@ fundo com texto `*-darker`.
 circulares (todo `gray-200`, atual `primary-base` com anel `color-mix 16%`, done
 `#10B981`), conectores `2px`.
 
+### Segmented control / StatusTabs (Atendimentos v2)
+Trilho cinza (`var(--color-gray-200)`, `border-radius: var(--border-radius-lg)`).
+Em vez de acender o fundo de cada botão, usa um **único indicador branco deslizante**
+(pílula absoluta) que se move entre abas via `transform: translateX` + `width`
+(ver indicador deslizante em Animation & Motion). Os botões ficam com fundo sempre
+transparente; apenas `font-weight` distingue a aba ativa.
+
 ### Gráficos (Dashboard v2)
 Recharts. Cartões brancos `radius 7px/10px`. Use as **paletas de dados** desta
 spec; eixos/grades em `#888599`; tooltip escuro translúcido (`#00000090` / texto
@@ -372,9 +449,37 @@ são embrulhadas em `@media (prefers-reduced-motion: no-preference)`.
 Transições de UI típicas: `0.15s–0.18s ease` (hover de cards, cores de borda/fundo),
 `0.25s ease` (cor/fundo/sombra de botão), `transform 0.05s` (feedback de press).
 
+**Transição de conteúdo de lista** (troca de aba/filtro em listas re-renderizadas
+em memória, ex.: abas de Atendimentos v2 "Atendendo/Aguardando/Fluxo/Grupos"):
+duração `list-content 150ms` (entre `faster 100ms` e `fast 200ms`), easing
+`cubic-bezier(0.4, 0, 0.2, 1)` (padrão de saída/entrada de material). Aplica-se ao
+**wrapper** do conteúdo (não item a item, para não custar por linha em listas
+virtualizadas), via `key` da aba ativa + keyframe de entrada `fadeInList`
+(opacidade `0→1` + `translateY(4px→0)`, sutil). Sempre sob
+`prefers-reduced-motion: no-preference`.
+
 Keyframes nomeados (compartilhados Login + PharmaConnector):
 - `fadeIn` / `revealUp` — entrada de seções: opacidade 0→1 + `translateY(8px→0)`,
   `0.4s–0.5s`, com `animation-delay` escalonado por seção (stagger).
+- `fadeInList` — entrada do conteúdo de lista na troca de aba/filtro: opacidade
+  `0→1` + `translateY(4px→0)`, `150ms cubic-bezier(0.4,0,0.2,1)` (token
+  `list-content`); aplicado no wrapper keyed pela aba ativa (Atendimentos v2).
+- **Indicador deslizante do segmented control (StatusTabs — Atendimentos v2):**
+  único elemento `div` (pílula branca, `var(--color-white)`, `var(--border-radius-lg)`)
+  posicionado via `position: absolute` dentro do trilho; a posição e largura são
+  medidas em JS e aplicadas como `transform: translateX(…)` + `width`. Transição
+  `slow 400ms cubic-bezier(0.4, 0, 0.2, 1)` aplicada a `transform` e `width`,
+  exclusivamente sob `@media (prefers-reduced-motion: no-preference)`. No primeiro
+  paint (mount) a transição é suprimida (`$animate: false`) para o indicador não
+  deslizar do canto; em movimento reduzido a troca é instantânea.
+- `attachmentMenuIn` — entrada de popover/menu flutuante ancorado a um botão
+  (ex.: menu de anexos do "+" no composer de Atendimentos v2): opacidade `0→1` +
+  `scale(0.95→1)`, `faster 100ms` `cubic-bezier(0.4,0,0.2,1)`, com
+  `transform-origin` no canto adjacente ao botão (ex.: `bottom left`).
+- `pressPulse` — pulse de micro-interação no clique de botões de ícone circulares
+  (ex.: "+"/emoji do composer): **encolhe e volta** — `scale 1 → 0.9 → 1`,
+  `fast 200ms` `cubic-bezier(0.4,0,0.2,1)`; disparado pelo `:active` (não por estado
+  React, para não vazar em re-render). Sempre sob `prefers-reduced-motion: no-preference`.
 - `spin` — spinner de loading, `0.8s linear infinite`.
 - `popIn` — ícone de sucesso/erro, `0.45s cubic-bezier(0.34,1.56,0.64,1)` (overshoot).
 - `shake` — erro de botão, `0.55s cubic-bezier(0.36,0.07,0.19,0.97)`.
