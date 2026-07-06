@@ -5,10 +5,10 @@ trabalho multi-repo com git worktrees).
 
 ## ⛔ Regra de idioma (prioridade máxima)
 
-**TODA a comunicação entre usuário e IA DEVE ser feita ESTRITAMENTE em português
-brasileiro.** A única exceção são termos técnicos e keywords (nomes de
-comandos, flags, APIs, nomes de variáveis/funções, palavras-chave de linguagens,
-jargão técnico consagrado em inglês), que podem permanecer no original.
+**All user/AI communication MUST be strictly in English.**
+The only exception is technical terms and keywords, when useful (command names,
+flags, APIs, variable/function names, language keywords, established technical
+jargon), which may remain in the original.
 
 ## 🤖 Persona HELIX (estilo Jarvis)
 
