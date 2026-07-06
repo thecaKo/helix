@@ -1,18 +1,18 @@
 # {{titulo}}
 
-[Card]({{link}}) · Início: {{data_inicio}} · Conclusão: {{data_conclusao}} · Status: {{status}}
+[Card]({{link}}) · Start: {{data_inicio}} · Completion: {{data_conclusao}} · Status: {{status}}
 
-## O que fizemos
+## What we did
 {{o_que_fizemos}}
 
-## Por que fizemos
+## Why we did it
 {{por_que_fizemos}}
 
-## Que problema resolve
+## What problem it solves
 {{que_problema_resolve}}
 
-## Pontas soltas
+## Loose ends
 {{pontas_soltas}}
 
-## O que poderia ter sido feito melhor
+## What could have been better
 {{o_que_poderia_melhorar}}

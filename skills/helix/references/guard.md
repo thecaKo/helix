@@ -1,71 +1,73 @@
-# Procedimento: guard (checklist de pré-commit)
+# Procedure: guard (pre-commit checklist)
 
-**Rode SEMPRE antes de `git commit`** dentro desta base. Regra: *pasta == branch +
-branches protegidas bloqueadas*. Se qualquer checagem falhar → **recuse o commit e
-reporte**; não commite.
+**Always run before `git commit`** inside this base. Rule: *folder == branch +
+protected branches blocked*. If any check fails → **refuse the commit and report**;
+do not commit.
+
+All prompts, reports, and user-facing responses from this procedure must be in English.
 
 ## Checklist
 
-1. **Confinamento — não é repo raiz**
+1. **Confinement — not a root repo**
 
    ```bash
    git rev-parse --show-toplevel
    ```
-   O caminho DEVE estar dentro de `worktrees/<frente>/<repo>`. Se for um repo raiz
-   (origem) → **BLOQUEIA**: repos raiz nunca recebem commit.
+   The path MUST be inside `worktrees/<initiative>/<repo>`. If it is a root repo
+   (origin) → **BLOCK**: root repos never receive commits.
 
-2. **Confinamento — mudanças não vazam**
+2. **Confinement — changes do not leak**
 
    ```bash
    git status --porcelain
    ```
-   Todos os arquivos staged/modificados devem pertencer a esta worktree. Nada de
-   paths apontando para fora dela.
+   All staged/modified files must belong to this worktree. No paths pointing
+   outside it.
 
-3. **Branch protegida**
+3. **Protected branch**
 
    ```bash
    git rev-parse --abbrev-ref HEAD
    ```
-   Se a branch for `main`, `master` ou `develop` → **BLOQUEIA**. Frente trabalha em
-   branch própria `<type>/<slug>`.
+   If the branch is `main`, `master`, or `develop` → **BLOCK**. Initiatives work on
+   their own `<type>/<slug>` branch.
 
-4. **Pasta == branch**
+4. **Folder == branch**
 
-   - Frente = penúltima pasta do caminho: `worktrees/<frente>/<repo>` → `<frente>`.
-   - Branch esperada = `<frente>` com o **primeiro** `-` trocado por `/`.
-   - A branch atual DEVE ser igual à esperada. Divergência silenciosa → **BLOQUEIA**.
+   - Initiative = second-to-last path folder: `worktrees/<initiative>/<repo>` → `<initiative>`.
+   - Expected branch = `<initiative>` with the **first** `-` replaced by `/`.
+   - Current branch MUST equal the expected branch. Silent divergence → **BLOCK**.
 
-5. **Testes unitários passam** (obrigatório)
+5. **Unit tests pass** (mandatory)
 
-   Rode a bateria de testes unitários do repo desta worktree. O comando vem do
-   `CLAUDE.md` da worktree (campo "Testes unitários"); se não declarado, descubra pelo
-   `package.json`/configuração do projeto (ex.: `pnpm vitest:unit`, `npm test`).
-   Se **falhar** → **BLOQUEIA**: conserte (use `superpowers:systematic-debugging`)
-   antes de commitar. Não commite com unit test vermelho.
+   Run the unit test suite for this worktree repo. The command comes from the
+   worktree `CLAUDE.md` (field "Unit tests"); if not declared, discover it from
+   `package.json`/project configuration (for example, `pnpm vitest:unit`, `npm test`).
+   If it **fails** → **BLOCK**: fix it (use `superpowers:systematic-debugging`)
+   before committing. Do not commit with red unit tests.
 
-   Antes de afirmar que passou, aplique `superpowers:verification-before-completion`:
-   evidência (saída real do teste) antes de qualquer afirmação de sucesso.
+   Before claiming it passed, apply `superpowers:verification-before-completion`:
+   evidence (real test output) before any success claim.
 
-## Se tudo passar
+## If everything passes
 
-Reporte e prossiga:
+Report and proceed:
 
-> ✅ commit liberado — frente `<type>-<slug>`, repo `<repo>`, branch `<type>/<slug>`,
-> unit tests verdes.
+> Commit allowed — initiative `<type>-<slug>`, repo `<repo>`, branch `<type>/<slug>`,
+> unit tests green.
 
-Mensagem de commit: **em pt-br**, **conventional commits**, **subject-only** (sem
-parágrafo de corpo) e com o footer de co-autoria do projeto. Ex.:
+Commit message: **English**, **conventional commits**, **subject-only** (no body
+paragraph), with the project co-author footer. Example:
 
 ```
-feat: adiciona compartilhamento de contatos no atendimento
+feat: add contact sharing in support
 
-Co-Authored-By: <conforme padrão do projeto>
+Co-Authored-By: <per project standard>
 ```
 
-## Se falhar
+## If it fails
 
-Explique **qual** checagem falhou e a correção sugerida (ex.: "você está em
-`develop`; troque para a branch da frente `feat/atendimentos-grupos` antes de
-commitar" ou "você está no repo raiz `web-pharmachatbot`; vá para a worktree em
-`worktrees/<frente>/web-pharmachatbot`"). **Não commite.**
+Explain **which** check failed and the suggested fix (for example: "you are on
+`develop`; switch to the initiative branch `feat/atendimentos-grupos` before
+committing" or "you are in the root repo `web-pharmachatbot`; move to the worktree
+at `worktrees/<initiative>/web-pharmachatbot`"). **Do not commit.**

@@ -1,95 +1,101 @@
 ---
 name: helix
 description: >-
-  Use ao trabalhar numa base multi-repo organizada com worktrees (estrutura
-  helix). Dispara quando o agente precisa SE LOCALIZAR ("onde estou", "qual
-  repo/branch é esse", "retomar frente"), CRIAR uma frente nova multi-repo
-  ("nova frente", "criar worktree"), VERIFICAR antes de commitar ("antes de
-  commitar", "git commit", "posso commitar aqui"), CRIAR/REVISAR uma PR ("criar PR",
-  "abrir PR", "abri a PR", "revisar a PR", "roda os agentes na PR"), FECHAR uma feature ("terminei a
-  feature", "fim de feature", "rodar integration tests") ou REPARAR worktrees
-  quebradas ("worktree prunable", "git worktree quebrado", "sincronizar mapa").
-  Garante que o agente nunca commite no repo raiz nem na branch/pasta errada e que
-  o fluxo de testes (unitários antes de commitar, integração ao fim da feature)
-  seja respeitado.
+  Use when working in a multi-repo base organized with worktrees (helix
+  structure). Triggers when the agent needs to LOCATE ITSELF ("where am I",
+  "what repo/branch is this", "resume initiative"), CREATE a new multi-repo
+  initiative ("new initiative", "create worktree"), CHECK before committing
+  ("before committing", "git commit", "can I commit here"), CREATE/REVIEW a PR
+  ("create PR", "open PR", "PR is open", "review the PR", "run agents on the PR"),
+  FINISH a feature ("feature is done", "end of feature", "run integration tests"),
+  or REPAIR broken worktrees ("worktree prunable", "broken git worktree",
+  "sync map"). Ensures the agent never commits in the root repo or wrong
+  branch/folder and that the test flow (unit tests before commit, integration at
+  feature end) is respected.
 ---
 
-# helix — orquestração multi-repo com worktrees
+# helix — multi-repo orchestration with worktrees
 
-Framework para trabalhar em **várias frentes ao mesmo tempo** sobre **múltiplos
-repositórios**, usando git worktrees, sem nunca tocar nos repos raiz nem commitar
-no lugar errado.
+## Language
 
-## Topologia (memorize)
+All skill operation, generated files, prompts, reports, and user-facing responses
+must be in English unless preserving an existing external contract, command,
+branch, path, token, API, or project-specific literal.
+
+Framework for working on **multiple initiatives at the same time** across
+**multiple repositories**, using git worktrees, without touching root repos or
+committing in the wrong place.
+
+## Topology (memorize)
 
 ```
-<base>/                                 raiz: agrega os repos · CLAUDE.md = ORQUESTRADOR
-├── <repo-a>/  <repo-b>/  <repo-c>/     repos RAIZ (origem) — NUNCA tocados/commitados
+<base>/                                 root: aggregates repos · CLAUDE.md = ORCHESTRATOR
+├── <repo-a>/  <repo-b>/  <repo-c>/     ROOT repos (origin) — NEVER touched/committed
 └── worktrees/
-    └── <type>-<slug>/                  uma FRENTE (rode 2-3 em paralelo)
+    └── <type>-<slug>/                  one INITIATIVE (run 2-3 in parallel)
         ├── <repo-a>/  CLAUDE.md+AGENTS.md   worktree · branch <type>/<slug>
         ├── <repo-b>/  CLAUDE.md+AGENTS.md   worktree · branch <type>/<slug>
         └── <repo-c>/  CLAUDE.md+AGENTS.md   worktree · branch <type>/<slug>
 ```
 
-## Convenção (conventional commits) — inviolável
+## Convention (conventional commits) — inviolable
 
-| Elemento | Padrão | Exemplo |
+| Element | Pattern | Example |
 |---|---|---|
-| Pasta da frente | `<type>-<slug-kebab>` | `feat-atendimentos-grupos` |
-| Branch (a MESMA em todos os repos da frente) | `<type>/<slug-kebab>` | `feat/atendimentos-grupos` |
-| Subpasta do repo | nome **exato** do repo origem | `web-pharmachatbot` |
-| Mensagem de commit | **pt-br**, conventional, **subject-only** (sem body) + footer Co-Author | `feat: adiciona X` |
+| Initiative folder | `<type>-<slug-kebab>` | `feat-atendimentos-grupos` |
+| Branch (the SAME in every initiative repo) | `<type>/<slug-kebab>` | `feat/atendimentos-grupos` |
+| Repo subfolder | **exact** origin repo name | `web-pharmachatbot` |
+| Commit message | conventional, **subject-only** (no body) + Co-Author footer | `feat: add X` |
 
 `type` ∈ `feat` · `fix` · `refactor` · `chore` · `docs` · `test` · `perf` · `build` · `ci`.
-Mapeamento determinístico pasta↔branch: trocar o **primeiro** `-` por `/`.
+Deterministic folder↔branch mapping: replace the **first** `-` with `/`.
 
-## Regras de ouro
+## Golden rules
 
-1. **Repos raiz NUNCA recebem commit.** Todo trabalho vive em `worktrees/<frente>/<repo>/`.
-2. **Uma frente = uma branch** `<type>/<slug>` atravessando seus repos.
-3. **Antes de QUALQUER commit**, rode o procedimento `guard` — que inclui rodar a
-   **bateria de testes unitários** (deve passar) antes de commitar.
-4. **Ao fim de cada feature**, rode o procedimento `finish-feature` — que roda os
-   **testes de integração** (apenas se o ambiente já estiver pronto; o agente nunca
-   sobe infra por conta própria).
-5. **Commits em pt-br**, conventional commits, **subject-only** (sem body) + footer
-   Co-Author.
-6. **A verdade vem do git ao vivo** (`git rev-parse`), nunca de um arquivo salvo.
-7. **No repo `neo-api`, priorize a documentação.** Consulte a doc do repo primeiro e
-   só recorra ao código-fonte **se precisar de mais contexto** — economiza tokens.
+1. **Root repos NEVER receive commits.** All work lives in `worktrees/<initiative>/<repo>/`.
+2. **One initiative = one branch** `<type>/<slug>` across its repos.
+3. **Before ANY commit**, run the `guard` procedure — it includes the **unit test
+   suite** (must pass) before committing.
+4. **At the end of each feature**, run the `finish-feature` procedure — it runs
+   **integration tests** (only if the environment is already ready; the agent never
+   brings up infrastructure by itself).
+5. **Commits in English**, conventional commits, **subject-only** (no body) +
+   Co-Author footer.
+6. **Truth comes from live git** (`git rev-parse`), never from a saved file.
+7. **In the `neo-api` repo, prioritize documentation.** Check repo docs first and
+   only use source code **if more context is needed** — saves tokens.
 
-## Workflow de desenvolvimento (superpowers)
+## Development workflow (superpowers)
 
-**Pré-requisito:** o plugin [superpowers](https://github.com/obra/superpowers) deve
-estar instalado para Claude. O helix organiza *onde* o trabalho acontece; o
-superpowers organiza *como*. Use as skills do superpowers em cada fase:
+**Prerequisite:** the [superpowers](https://github.com/obra/superpowers) plugin
+must be installed for Claude. helix organizes *where* work happens; superpowers
+organizes *how*. Use superpowers skills in each phase:
 
-| Fase | Skill superpowers |
+| Phase | Superpowers skill |
 |---|---|
-| Antes de criar feature/ideia | `superpowers:brainstorming` |
-| Transformar spec em plano | `superpowers:writing-plans` |
-| Implementar (sempre via testes) | `superpowers:test-driven-development` |
-| Bug / falha de teste / comportamento estranho | `superpowers:systematic-debugging` |
-| Antes de afirmar "pronto/passa" ou commitar | `superpowers:verification-before-completion` |
-| Pedir/receber code review | `superpowers:requesting-code-review` · `superpowers:receiving-code-review` |
-| Após abrir a PR (review multi-agente por dimensão) | **review-pr** (`references/review-pr.md`) — complementa o code review acima |
-| Fechar a branch (merge/PR/cleanup) | `superpowers:finishing-a-development-branch` |
+| Before creating a feature/idea | `superpowers:brainstorming` |
+| Turn spec into plan | `superpowers:writing-plans` |
+| Implement (always through tests) | `superpowers:test-driven-development` |
+| Bug / test failure / strange behavior | `superpowers:systematic-debugging` |
+| Before saying "done/passing" or committing | `superpowers:verification-before-completion` |
+| Request/receive code review | `superpowers:requesting-code-review` · `superpowers:receiving-code-review` |
+| After opening the PR (multi-agent review by dimension) | **review-pr** (`references/review-pr.md`) — complements the code review above |
+| Finish the branch (merge/PR/cleanup) | `superpowers:finishing-a-development-branch` |
 
-Fluxo típico de uma frente: `brainstorming` → `writing-plans` → (por task) `TDD` /
-`systematic-debugging` → `guard` (testes unitários + commit) → repetir → ao fim:
-`finish-feature` (testes de integração) → `finishing-a-development-branch`.
+Typical initiative flow: `brainstorming` → `writing-plans` → (per task) `TDD` /
+`systematic-debugging` → `guard` (unit tests + commit) → repeat → at the end:
+`finish-feature` (integration tests) → `finishing-a-development-branch`.
 
-## Roteamento — escolha o procedimento
+## Routing — choose the procedure
 
-| Intenção | Procedimento | Arquivo |
+| Intent | Procedure | File |
 |---|---|---|
-| "Onde estou? Qual repo/branch? Me perdi / retomar" | **where-am-i** | `references/where-am-i.md` |
-| "Criar uma frente nova multi-repo" | **new-initiative** | `references/new-initiative.md` |
-| "Vou commitar / posso commitar aqui?" | **guard** | `references/guard.md` |
-| "Criar PR / abri a PR / revisar a PR / roda os agentes na PR" | **review-pr** | `references/review-pr.md` |
-| "Terminei a feature / rodar integration tests" | **finish-feature** | `references/finish-feature.md` |
-| "Worktree quebrada / prunable / sincronizar mapa" | **doctor** | `references/doctor.md` |
+| "Where am I? What repo/branch? I am lost / resume" | **where-am-i** | `references/where-am-i.md` |
+| "Create a new multi-repo initiative" | **new-initiative** | `references/new-initiative.md` |
+| "I will commit / can I commit here?" | **guard** | `references/guard.md` |
+| "Create PR / PR is open / review PR / run agents on PR" | **review-pr** | `references/review-pr.md` |
+| "Feature is done / run integration tests" | **finish-feature** | `references/finish-feature.md` |
+| "Broken worktree / prunable / sync map" | **doctor** | `references/doctor.md` |
 
-Leia o arquivo de referência correspondente e siga-o passo a passo. Em dúvida sobre
-contexto, comece **sempre** por `where-am-i`.
+Read the corresponding reference file and follow it step by step. When context is
+unclear, **always** start with `where-am-i`.

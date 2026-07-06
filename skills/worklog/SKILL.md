@@ -1,114 +1,117 @@
 ---
 name: worklog
-description: Use quando o usuário quiser registrar/organizar o trabalho do dia na vault WorkLog (diário dirigido por IA) para alimentar daily e retro — "abre o dia", "registra isso", "anota que travei em X", "fecha o dia", "faz a retro", "o que falo na daily". Opera a vault ~/Documents/WorkLog (padrão Karpathy adaptado): captura bruta de Monday+git em raw/ e a IA sintetiza daily/, frentes/, impedimentos/ e retro/.
+description: Use when the user wants to record/organize the day's work in the WorkLog vault (AI-directed journal) to feed daily and retro — "open the day", "record this", "note that I got blocked on X", "close the day", "make the retro", "what do I say in daily". Operates the ~/Documents/WorkLog vault (adapted Karpathy pattern): raw Monday+git capture in raw/ and AI synthesis in daily/, frentes/, impedimentos/, and retro/.
 ---
 
 # worklog
 
 ## Overview
 
-Mantém a vault **WorkLog** (`~/Documents/WorkLog`), um **diário de trabalho temporal**
-escrito majoritariamente pela IA, para o usuário ter material pronto pra **daily** e
-**retro**. Segue o padrão **LLM Wiki do Karpathy**: `raw/` é a camada bruta imutável
-(snapshots de Monday + commits do dia + notas), e `daily/`, `frentes/`,
-`impedimentos/`, `retro/` são sintetizados e interligados pela IA.
+All skill operation, generated notes, prompts, and user-facing responses must be in English.
 
-- **Fontes:** Monday (via `overview-do-dia`/`monday-api`, **read-only**), git/código
-  (commits do dia nas worktrees), conversas com a IA, notas manuais.
-- **Divisão de trabalho:** `worklog.sh` faz só a IO mecânica (chamar o overview,
-  coletar git, garantir o esqueleto da daily). **A prosa é VOCÊ (a IA) que escreve**,
-  lendo o `raw/` e seguindo o `AGENTS.md` da vault.
-- **Idioma:** tudo em português (regra da base).
+Maintains the **WorkLog** vault (`~/Documents/WorkLog`), a **time-based work
+journal** written mostly by AI so the user has ready material for **daily** and
+**retro**. Follows the **Karpathy LLM Wiki** pattern: `raw/` is the immutable raw
+layer (Monday snapshots + day commits + notes), and `daily/`, `frentes/`,
+`impedimentos/`, `retro/` are synthesized and linked by AI.
 
-## Regra de ouro
+- **Sources:** Monday (via `overview-do-dia`/`monday-api`, **read-only**), git/code
+  (day commits in worktrees), AI conversations, manual notes.
+- **Work split:** `worklog.sh` only does mechanical IO (call overview, collect git,
+  ensure the daily skeleton). **YOU (the AI) write the prose**, reading `raw/` and
+  following the vault `AGENTS.md`.
 
-- **Nunca** chame a API do Monday direto. Leitura do Monday só via `overview-do-dia`
-  (que por baixo usa o gateway `monday.sh` da skill `monday-api`).
-- **`raw/` é imutável** — só anexe capturas, nunca reescreva.
-- **Anti-alucinação:** "Feito" só entra se vier de `raw/` (Monday/git) ou for
-  confirmado pelo usuário. Não invente entregas; cite a fonte de cada fato.
-- Esta skill **não** escreve no Monday. Se o usuário pedir uma ação no Monday, isso é
-  a skill `monday-api`, com confirmação.
+## Golden rule
 
-## Pré-requisitos
+- **Never** call the Monday API directly. Monday reads only through
+  `overview-do-dia` (which uses the `monday.sh` gateway from `monday-api`).
+- **`raw/` is immutable** — only append captures, never rewrite.
+- **Anti-hallucination:** "Done" only enters if it comes from `raw/` (Monday/git)
+  or is confirmed by the user. Do not invent deliveries; cite the source for each fact.
+- This skill **does not** write to Monday. If the user asks for a Monday action,
+  that is the `monday-api` skill, with confirmation.
 
-- `MONDAY_API_TOKEN` exportado (para `abrir`/`fechar`):
+## Prerequisites
+
+- `MONDAY_API_TOKEN` exported (for `abrir`/`fechar`):
   `export MONDAY_API_TOKEN="$(cat ~/.config/monday/token)"`.
-- `jq`, `git`. Vault em `~/Documents/WorkLog` (caminho em `config.json`).
+- `jq`, `git`. Vault at `~/Documents/WorkLog` (path in `config.json`).
 
-## Layout das notas (minimal elegante)
+## Note layout (minimal elegant)
 
-Toda nota segue um estilo visual único, **nativo do Obsidian** (sem plugins): título
-enxuto com emoji + data legível (`# 📅 09 jun · terça`), um `> [!abstract]` de resumo
-logo abaixo, headers `##` com emoji-âncora fixo por seção (📋 Plano · ✅ Feito ·
-🚧 Impedimentos · 💡 Decisões), tasks `- [ ]` onde há progresso, prioridade por bolinha
-🔴🟡🟢, impedimento aberto em `> [!warning]` (resolvido em `> [!success]`), frontmatter
-limpo com `tags: [tipo]` e divisor `---` antes do bloco de fechamento. **A fonte de
-verdade do layout é a seção "Linguagem visual" + as "Anatomias" do `AGENTS.md` da
-vault** — leia-as antes de escrever. O esqueleto da daily nasce pronto via
-`ensure-daily`; frentes/impedimentos são os modelos vivos e há `retro/_template.md`.
+Every note follows a single visual style, **native to Obsidian** (no plugins):
+compact title with emoji + readable date (`# 📅 Jun 09 · Tuesday`), a
+`> [!abstract]` summary just below, `##` headers with a fixed emoji anchor per
+section (📋 Plan · ✅ Done · 🚧 Blockers · 💡 Decisions), `- [ ]` tasks where there
+is progress, priority by colored dot, open blocker in `> [!warning]` (resolved in
+`> [!success]`), clean frontmatter with `tags: [type]`, and `---` divider before
+the closing block. **The layout source of truth is the "Visual language" section +
+the "Anatomies" in the vault `AGENTS.md`** — read them before writing. The daily
+skeleton is created by `ensure-daily`; frentes/impedimentos are live models and
+there is `retro/_template.md`.
 
-## Procedimento (os 4 verbos)
+## Procedure (the 4 verbs)
 
-Rode os comandos a partir da pasta da skill. Sempre **leia o `AGENTS.md` da vault**
-antes de escrever prosa.
+Run commands from the skill folder. Always **read the vault `AGENTS.md`** before
+writing prose.
 
-### 1. abrir o dia (manhã / "abre o dia", "o que tenho pra hoje")
+### 1. open the day (morning / "open the day", "what do I have today")
 ```bash
 export MONDAY_API_TOKEN="$(cat ~/.config/monday/token)"
 ./worklog.sh abrir inicio
 ```
-Isso salva `raw/<hoje>/monday.json` e garante `daily/<hoje>.md`. **Você então:**
-- Preenche a seção **Plano** da daily, priorizado (atrasados → reprovados/reviews →
-  em andamento → a fazer), lendo o JSON impresso.
-- Traz **impedimentos abertos** relevantes de `impedimentos/` pro topo.
-- Anexa entrada `abrir-dia` no `log.md` e atualiza "Últimas dailies" no `index.md`.
+This saves `raw/<today>/monday.json` and ensures `daily/<today>.md`. **Then you:**
+- Fill the daily **Plan** section, prioritized (overdue → failed/reviews → in
+  progress → to do), reading the printed JSON.
+- Bring relevant **open blockers** from `impedimentos/` to the top.
+- Append an `abrir-dia` entry to `log.md` and update "Latest dailies" in `index.md`.
 
-### 2. registrar (durante / "registra isso", "anota que…")
-- O usuário relata um avanço/decisão/impedimento (ou você capta da própria sessão).
-- Garanta a daily: `./worklog.sh ensure-daily`.
-- **Você escreve:** anexa na daily de hoje (Feito / Impedimentos / Decisões) **e**
-  atualiza a `frentes/<slug>.md` correspondente e/ou abre/atualiza
+### 2. record (during the day / "record this", "note that…")
+- The user reports progress/decision/blocker (or you capture it from the session).
+- Ensure the daily exists: `./worklog.sh ensure-daily`.
+- **You write:** append to today's daily (Done / Blockers / Decisions) **and**
+  update the corresponding `frentes/<slug>.md` and/or open/update
   `impedimentos/<slug>.md` (frontmatter `status`, `aberto_em`).
-- Para notas cruas longas do usuário, salve também em `raw/<hoje>/notas.md`.
+- For long raw user notes, also save them in `raw/<today>/notas.md`.
 
-### 3. fechar o dia (fim / "fecha o dia", "encerrar")
+### 3. close the day (end / "close the day", "wrap up")
 ```bash
 export MONDAY_API_TOKEN="$(cat ~/.config/monday/token)"
 ./worklog.sh fechar fim
 ```
-Salva `raw/<hoje>/monday.json` (modo fim) e `raw/<hoje>/git.md`. **Você então:**
-- Completa **Feito** (correlacionando os commits do `git.md` às frentes — use o mapa
-  `frentes` do `config.json` como dica, mas confie no que o git reportou) e
-  **Impedimentos**; marca impedimentos resolvidos com data.
-- Escreve o bloco **"Para a daily de amanhã"** (fiz / farei / travado em).
-- Atualiza `frentes/`, `index.md`; anexa `fechar-dia` no `log.md`.
+Saves `raw/<today>/monday.json` (end mode) and `raw/<today>/git.md`. **Then you:**
+- Complete **Done** (correlating commits from `git.md` to initiatives — use the
+  `frentes` map in `config.json` as a hint, but trust what git reported) and
+  **Blockers**; mark resolved blockers with date.
+- Write the **"For tomorrow's daily"** block (did / will do / blocked on).
+- Update `frentes/`, `index.md`; append `fechar-dia` to `log.md`.
 
-### 4. fazer a retro (fim de sprint/semana / "faz a retro")
-- Leia as `daily/AAAA-MM-DD.md` do período (ex.: a semana ISO).
-- Gere `retro/AAAA-Www.md`: entregas, impedimentos **recorrentes**, decisões, ações
-  de melhoria. Interligue com `[[frentes/...]]` e `[[impedimentos/...]]`.
-- Anexe `retro` no `log.md`.
+### 4. run the retro (end of sprint/week / "make the retro")
+- Read `daily/YYYY-MM-DD.md` files from the period (for example, the ISO week).
+- Generate `retro/YYYY-Www.md`: deliveries, **recurring** blockers, decisions,
+  improvement actions. Link with `[[frentes/...]]` and `[[impedimentos/...]]`.
+- Append `retro` to `log.md`.
 
-## Tratamento de erros
+## Error handling
 
-- Token ausente → peça `export MONDAY_API_TOKEN=...` (não contorne).
-- `git.md` vazio → dia sem commits do autor; registre só o que veio do Monday/relato.
-- Worktree/branch divergente do `CLAUDE.md` → normal (branches mudam); use o que o
-  `git-dia` reportou e ajuste o mapa de `frentes` no `config.json` se quiser.
+- Missing token → ask for `export MONDAY_API_TOKEN=...` (do not bypass).
+- Empty `git.md` → day without commits by the author; record only what came from
+  Monday/user report.
+- Worktree/branch diverges from `CLAUDE.md` → normal (branches change); use what
+  `git-dia` reported and adjust the `frentes` map in `config.json` if desired.
 
-## Configuração (`config.json`)
+## Configuration (`config.json`)
 
-- `vault_path`: caminho da vault (suporta `~`).
-- `git_author`: autor usado no `git log` (default do projeto: `cako`).
-- `repos`: raízes de repo varridas pelo `git-dia` (cada uma cobre suas worktrees).
-- `overview_script`: caminho relativo pro `overview.sh`.
-- `frentes`: mapa frente→branches, só dica pra você correlacionar commits.
+- `vault_path`: vault path (supports `~`).
+- `git_author`: author used in `git log` (project default: `cako`).
+- `repos`: repo roots scanned by `git-dia` (each covers its worktrees).
+- `overview_script`: relative path to `overview.sh`.
+- `frentes`: initiative→branches map, only a hint for correlating commits.
 
-## Teste (sem rede)
+## Test (no network)
 
 ```bash
 ./test-worklog.sh
 ```
-Cria uma vault temporária e valida o `ensure-daily` (seções + idempotência), sem
-tocar no Monday.
+Creates a temporary vault and validates `ensure-daily` (sections + idempotence),
+without touching Monday.

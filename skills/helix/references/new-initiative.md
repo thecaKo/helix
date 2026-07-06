@@ -1,71 +1,75 @@
-# Procedimento: nova-frente (criar frente multi-repo consistente)
+# Procedure: new-initiative (create a consistent multi-repo initiative)
 
-Use para abrir uma nova frente de trabalho que atravessa 1+ repos, seguindo a
-convenção de nomes do helix.
+Use this to open a new work initiative spanning 1+ repos, following the helix
+naming convention.
 
-## Entradas necessárias
+All prompts, generated files, and user-facing responses from this procedure must
+be in English.
+
+## Required inputs
 
 - `type` — `feat` · `fix` · `refactor` · `chore` · `docs` · `test` · `perf` · `build` · `ci`.
-- `slug` — kebab-case curto e descritivo (ex.: `atendimentos-grupos`).
-- `repos` — lista de repos raiz envolvidos (nome exato de cada pasta).
+- `slug` — short descriptive kebab-case (example: `atendimentos-grupos`).
+- `repos` — list of involved root repos (exact folder name for each one).
 
-Derivados:
-- Pasta da frente: `worktrees/<type>-<slug>/`
-- Branch (a MESMA em todos os repos): `<type>/<slug>`
+Derived:
+- Initiative folder: `worktrees/<type>-<slug>/`
+- Branch (the SAME in every repo): `<type>/<slug>`
 
-Se algum dado faltar, **pergunte** antes de criar.
+If any input is missing, **ask** before creating anything.
 
-> **Prompt seco → pergunte o nome.** Se o pedido vier vago (ex.: "preciso iniciar
-> um novo projeto", "criar uma frente nova"), **não invente** o nome da pasta/branch.
-> Pergunte ao usuário o **nome que deve dar à frente** (o `slug` kebab-case) e, se não
-> der para inferir, também o `type`. Pasta e branch derivam disso
-> (`worktrees/<type>-<slug>/` e branch `<type>/<slug>`). Só prossiga após a resposta.
+> **Bare prompt → ask for the name.** If the request is vague (for example,
+> "I need to start a new project", "create a new initiative"), **do not invent**
+> the folder/branch name. Ask the user for the **initiative name** (the kebab-case
+> `slug`) and, if it cannot be inferred, the `type` too. Folder and branch derive
+> from that (`worktrees/<type>-<slug>/` and branch `<type>/<slug>`). Continue only
+> after the answer.
 
-> **Sempre pergunte QUAIS repos incluir.** Mesmo que o usuário não tenha
-> especificado, **não assuma** a lista de `repos` — descubra os repos disponíveis na
-> base (passo 1) e **pergunte explicitamente** ao usuário quais ele quer clonar como
-> worktree nesta frente. Só siga para a criação depois da resposta.
+> **Always ask WHICH repos to include.** Even if the user did not specify them,
+> **do not assume** the `repos` list — discover available repos in the base (step 1)
+> and **explicitly ask** the user which ones they want as worktrees in this
+> initiative. Continue to creation only after the answer.
 
-## Passos
+## Steps
 
-1. **Posicione-se na raiz da base** (a pasta que contém `worktrees/` e os repos raiz).
+1. **Move to the base root** (the folder that contains `worktrees/` and the root repos).
 
-1b. **Liste os repos disponíveis e pergunte quais incluir.** Detecte os repos raiz
-   (cada subpasta que é um repositório git, excluindo `worktrees/`):
+1b. **List available repos and ask which ones to include.** Detect root repos
+   (each subfolder that is a git repository, excluding `worktrees/`):
 
    ```bash
    for d in */; do [ -d "$d/.git" ] && echo "${d%/}"; done
    ```
-   Apresente essa lista ao usuário e **pergunte quais repos** ele quer para a frente.
-   Use **apenas os repos confirmados** como a lista `repos` dos próximos passos.
+   Show this list to the user and **ask which repos** they want for the initiative.
+   Use **only the confirmed repos** as the `repos` list for the next steps.
 
-2. **Crie a pasta da frente**
+2. **Create the initiative folder**
 
    ```bash
    mkdir -p worktrees/<type>-<slug>
    ```
 
-3. **Para cada repo da lista**, crie a worktree já na branch nova, **sempre
-   partindo da branch `develop` atualizada do repo raiz** (nunca da branch em que
-   o repo raiz estiver no momento). Primeiro atualize `develop`:
+3. **For each listed repo**, create the worktree directly on the new branch,
+   **always starting from the updated `develop` branch of the root repo** (never
+   from whatever branch the root repo is currently on). First update `develop`:
 
    ```bash
    git -C <repo> fetch origin develop
    ```
-   Então crie a worktree baseando a branch nova em `origin/develop`:
+   Then create the worktree based on `origin/develop`:
    ```bash
    git -C <repo> worktree add "worktrees/<type>-<slug>/<repo>" -b "<type>/<slug>" origin/develop
    ```
-   Se a branch já existir (frente retomada), troque por:
+   If the branch already exists (resumed initiative), use:
    ```bash
    git -C <repo> worktree add "worktrees/<type>-<slug>/<repo>" "<type>/<slug>"
    ```
-   Se algum repo não tiver a branch `develop`, **pare e pergunte ao usuário** de
-   qual branch base partir — não assuma `main`/`master`.
+   If any repo does not have a `develop` branch, **stop and ask the user** which
+   base branch to use — do not assume `main`/`master`.
 
-3b. **Copie os arquivos de ambiente** do repo raiz para a worktree, **apenas se
-   existirem** (`.env` e `.env.test` ficam fora do git, então não vêm na worktree).
-   Para cada repo, copie só o que existir — se não houver, não faça nada:
+3b. **Copy environment files** from the root repo to the worktree, **only if they
+   exist** (`.env` and `.env.test` are outside git, so they do not appear in the
+   worktree). For each repo, copy only what exists — if neither exists, do nothing:
 
    ```bash
    for f in .env .env.test; do
@@ -73,8 +77,8 @@ Se algum dado faltar, **pergunte** antes de criar.
    done
    ```
 
-3c. **Instale as dependências** em cada worktree, detectando o gerenciador pelo
-   lockfile (não assuma npm). Rode dentro da pasta da worktree do repo:
+3c. **Install dependencies** in each worktree, detecting the package manager from
+   the lockfile (do not assume npm). Run inside the repo worktree folder:
 
    ```bash
    cd "worktrees/<type>-<slug>/<repo>"
@@ -86,30 +90,30 @@ Se algum dado faltar, **pergunte** antes de criar.
    elif [ -f requirements.txt ];   then pip install -r requirements.txt
    fi
    ```
-   Se o repo não tiver manifesto de dependências reconhecido, pule esta etapa.
+   If the repo has no recognized dependency manifest, skip this step.
 
-4. **Gere o `CLAUDE.md` por-repo-worktree** em cada
-   `worktrees/<type>-<slug>/<repo>/CLAUDE.md`, a partir de
-   `templates/CLAUDE.worktree.md`, preenchendo: frente, repo origem, branch, papel
-   (web/api/neo-api/…), objetivo (1-2 linhas).
+4. **Generate the per-repo-worktree `CLAUDE.md`** in each
+   `worktrees/<type>-<slug>/<repo>/CLAUDE.md`, from
+   `templates/CLAUDE.worktree.md`, filling in: initiative, origin repo, branch,
+   role (web/api/neo-api/…), goal (1-2 lines).
 
-5. **Crie o espelho `AGENTS.md`** ao lado de cada `CLAUDE.md`:
+5. **Create the `AGENTS.md` mirror** beside each `CLAUDE.md`:
 
    ```bash
    ln -sf CLAUDE.md "worktrees/<type>-<slug>/<repo>/AGENTS.md"
    ```
-   Se a ferramenta-alvo não seguir symlink, copie o conteúdo em vez do link.
+   If the target tool does not follow symlinks, copy the content instead of linking.
 
-6. **Atualize o Mapa de frentes ativas** no `CLAUDE.md` raiz: adicione uma linha
-   `| <type>-<slug> | <repos> | <type>/<slug> | em andamento — <objetivo> |`.
+6. **Update the Active initiatives map** in the root `CLAUDE.md`: add a line
+   `| <type>-<slug> | <repos> | <type>/<slug> | in progress — <goal> |`.
 
-7. **Reporte** a frente criada, listando os caminhos das worktrees e a branch.
+7. **Report** the created initiative, listing worktree paths and branch.
 
-## Validação
+## Validation
 
-- `git -C <repo> worktree list` deve mostrar a nova worktree no caminho correto, na
-  branch `<type>/<slug>`, sem `prunable`.
-- Confirme que a subpasta tem **o nome exato do repo** (não um apelido).
-- Confirme que a branch nova partiu de `develop`: `git -C "worktrees/<type>-<slug>/<repo>"
-  merge-base --is-ancestor origin/develop HEAD` deve retornar sucesso (a nova branch
-  contém o topo de `origin/develop`).
+- `git -C <repo> worktree list` must show the new worktree at the correct path, on
+  branch `<type>/<slug>`, without `prunable`.
+- Confirm the subfolder has **the exact repo name** (not an alias).
+- Confirm the new branch started from `develop`: `git -C "worktrees/<type>-<slug>/<repo>"
+  merge-base --is-ancestor origin/develop HEAD` must succeed (the new branch
+  contains the tip of `origin/develop`).

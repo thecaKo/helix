@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 #
-# overview.sh — coletor + classificador do "overview do dia" (skill: overview-do-dia).
-# READ-ONLY. Toda leitura do Monday passa pelo gateway monday.sh (skill monday-api).
+# overview.sh — collector + classifier for the workday overview (skill: overview-do-dia).
+# READ-ONLY. Every Monday read goes through the monday.sh gateway (skill monday-api).
 #
-# Uso:
-#   ./overview.sh [inicio|meio|fim]     # coleta do Monday e emite JSON classificado
-#   ./overview.sh --classify            # lê JSON cru de stdin e só classifica (sem rede)
+# Usage:
+#   ./overview.sh [inicio|meio|fim]     # collects from Monday and emits classified JSON
+#   ./overview.sh --classify            # reads raw JSON from stdin and only classifies
 #
-# Sem argumento de modo, infere pela hora local: <12h=inicio, 12-17h=meio, >=17h=fim.
-# Config: $OVERVIEW_CONFIG ou ./config.json (board_ids, nome do usuário, IDs de coluna, labels).
-# Token: env MONDAY_API_TOKEN (exigido pelo monday.sh).
+# Without a mode argument, infers by local time: <12h=inicio, 12-17h=meio, >=17h=fim.
+# Config: $OVERVIEW_CONFIG or ./config.json (board_ids, user name, column IDs, labels).
+# Token: env MONDAY_API_TOKEN (required by monday.sh).
 #
 set -euo pipefail
 
@@ -17,14 +17,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MONDAY="${MONDAY_SH:-$SCRIPT_DIR/../monday-api/monday.sh}"
 CONFIG="${OVERVIEW_CONFIG:-$SCRIPT_DIR/config.json}"
 
-command -v jq >/dev/null 2>&1 || { echo "overview.sh: requer 'jq' no PATH" >&2; exit 127; }
-[ -f "$CONFIG" ] || { echo "overview.sh: config não encontrada: $CONFIG" >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "overview.sh: requires 'jq' in PATH" >&2; exit 127; }
+[ -f "$CONFIG" ] || { echo "overview.sh: config not found: $CONFIG" >&2; exit 1; }
 
 # ---------------------------------------------------------------------------
-# Núcleo de classificação (jq puro). Recebe no stdin:
+# Core classifier (pure jq). Receives on stdin:
 #   { generated_at, today, mode, user, items:[ {id,name,board,group,role,status,priority,due_date} ] }
-# Emite o JSON final com buckets ordenados por urgência. Campos extras (role, group)
-# passam adiante intactos.
+# Emits final JSON with buckets ordered by urgency. Extra fields (role, group)
+# pass through unchanged.
 # ---------------------------------------------------------------------------
 read -r -d '' CLASSIFY_JQ <<'JQ' || true
 def days_between($a; $b):
@@ -80,7 +80,7 @@ JQ
 run_classify() { jq --slurpfile cfg "$CONFIG" "$CLASSIFY_JQ"; }
 
 # ---------------------------------------------------------------------------
-# Parse de argumentos
+# Argument parsing
 # ---------------------------------------------------------------------------
 MODE=""
 CLASSIFY=0
@@ -89,19 +89,19 @@ while [ $# -gt 0 ]; do
     --classify) CLASSIFY=1 ;;
     inicio|meio|fim) MODE="$1" ;;
     -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
-    *) echo "overview.sh: argumento inválido '$1' (use inicio|meio|fim ou --classify)" >&2; exit 2 ;;
+    *) echo "overview.sh: invalid argument '$1' (use inicio|meio|fim or --classify)" >&2; exit 2 ;;
   esac
   shift
 done
 
-# Modo --classify: só roda o núcleo sobre o stdin (usado nos testes).
+# --classify mode: only runs the core classifier over stdin (used in tests).
 if [ "$CLASSIFY" -eq 1 ]; then
   run_classify
   exit 0
 fi
 
 # ---------------------------------------------------------------------------
-# Coleta ao vivo (read-only via monday.sh)
+# Live collection (read-only via monday.sh)
 # ---------------------------------------------------------------------------
 TODAY="$(date +%F)"
 GENERATED_AT="$(date --iso-8601=seconds 2>/dev/null || date +%FT%T%z)"
@@ -113,9 +113,9 @@ if [ -z "$MODE" ]; then
   else MODE="fim"; fi
 fi
 
-[ -x "$MONDAY" ] || { echo "overview.sh: gateway monday.sh não encontrado/executável: $MONDAY" >&2; exit 1; }
+[ -x "$MONDAY" ] || { echo "overview.sh: monday.sh gateway not found/executable: $MONDAY" >&2; exit 1; }
 
-# IDs de coluna (do config).
+# Column IDs (from config).
 C_RESP="$(jq -r '.columns.people_resp // empty' "$CONFIG")"
 C_PAR="$(jq -r '.columns.people_par // empty' "$CONFIG")"
 C_STATUS="$(jq -r '.columns.status' "$CONFIG")"
@@ -123,7 +123,7 @@ C_PRI="$(jq -r '.columns.priority // empty' "$CONFIG")"
 C_DATE="$(jq -r '.columns.date // empty' "$CONFIG")"
 COLS="$(jq -c '[.columns.people_resp, .columns.people_par, .columns.status, .columns.priority, .columns.date] | map(select(. != null and . != ""))' "$CONFIG")"
 
-# 1) Resolve o usuário pelo nome (exato; cai p/ contains se não houver exato).
+# 1) Resolve the user by name (exact; falls back to contains if no exact match).
 USER_NAME="$(jq -r '.user_name' "$CONFIG")"
 USERS_JSON="$("$MONDAY" 'query{ users(limit:500){ id name } }')"
 USER="$(printf '%s' "$USERS_JSON" | jq --arg n "$USER_NAME" '
@@ -133,12 +133,10 @@ USER="$(printf '%s' "$USERS_JSON" | jq --arg n "$USER_NAME" '
       // null )
   | if . == null then null else {id: (.id|tostring), name: .name} end')"
 if [ "$USER" = "null" ] || [ -z "$USER" ]; then
-  echo "overview.sh: usuário '$USER_NAME' não encontrado no Monday." >&2; exit 1
+  echo "overview.sh: user '$USER_NAME' not found on Monday." >&2; exit 1
 fi
 USER_ID="$(printf '%s' "$USER" | jq -r '.id')"
 
-# Mapeia uma página de itens (stdin = array de items) para a forma crua, filtrando
-# apenas itens em que o USER_ID aparece em Resp. ou Par. Marca o papel (resp/par).
 map_items() { # $1 board_name
   jq --arg bname "$1" --arg uid "$USER_ID" \
      --arg c_resp "$C_RESP" --arg c_par "$C_PAR" \
@@ -174,7 +172,7 @@ ITEMS_ACC="[]"
 while IFS= read -r BID; do
   [ -n "$BID" ] || continue
   if [ "$BID" = "REPLACE_COM_SEU_BOARD_ID" ]; then
-    echo "overview.sh: preencha board_ids em $CONFIG (ainda está com o placeholder)." >&2
+    echo "overview.sh: fill board_ids in $CONFIG (it still has the placeholder)." >&2
     exit 1
   fi
   RESP="$("$MONDAY" "$BOARD_QUERY" "$(jq -n --arg b "$BID" --argjson cols "$COLS" '{b:[$b], cols:$cols}')")"
@@ -192,7 +190,6 @@ while IFS= read -r BID; do
   done
 done < <(jq -r '.board_ids[]' "$CONFIG")
 
-# Monta o JSON cru e classifica.
 jq -n \
   --arg ga "$GENERATED_AT" --arg today "$TODAY" --arg mode "$MODE" \
   --argjson user "$USER" --argjson items "$ITEMS_ACC" \

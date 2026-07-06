@@ -1,103 +1,102 @@
 ---
 name: overview-do-dia
-description: Use quando o usuário pedir um panorama/overview do dia de trabalho — "como está meu dia", "o que tenho pra hoje", "overview do dia", "início/meio/fim de dia", "minhas tasks", "o que falta", "code reviews pendentes", "testes reprovados". Lê (read-only) as atribuições do usuário no Monday e devolve um resumo priorizado por urgência, com ênfase conforme a hora (início = plano, meio = progresso, fim = fechamento).
+description: Use when the user asks for a workday overview — "how is my day", "what do I have today", "day overview", "start/mid/end of day", "my tasks", "what is missing", "pending code reviews", "failed tests". Reads the user's Monday assignments read-only and returns an urgency-prioritized summary, with emphasis by time (start = plan, mid = progress, end = closing).
 ---
 
 # overview-do-dia
 
 ## Overview
 
-Dá um **overview do dia de trabalho** do usuário a partir do Monday.com, **somente
-leitura**. Mostra tasks atribuídas, code reviews pendentes e testes reprovados,
-ordenados por urgência (prazo + prioridade + tipo de status). Pensada para rodar no
-**início, meio e fim** do dia.
+All skill operation, summaries, prompts, examples, and user-facing responses must be in English.
 
-- **Fonte única:** Monday via o gateway `monday.sh` da skill `monday-api`. Nunca
-  monte chamadas à API direto — `overview.sh` já chama o `monday.sh` por baixo.
-- **Read-only:** esta skill **nunca** altera nada no Monday. Se o usuário pedir uma
-  ação (mover card, comentar etc.), isso é outra coisa — use a skill `monday-api`
-  com confirmação, não esta.
-- **Idioma:** todo o resumo é em português (regra da base).
+Gives the user a **workday overview** from Monday.com, **read-only**. Shows assigned
+tasks, pending code reviews, and failed tests ordered by urgency (deadline +
+priority + status type). Designed to run at the **start, middle, and end** of the day.
 
-## Pré-requisitos
+- **Single source:** Monday through the `monday.sh` gateway from the `monday-api`
+  skill. Never build direct API calls — `overview.sh` already calls `monday.sh`.
+- **Read-only:** this skill **never** changes Monday. If the user asks for an
+  action (move card, comment, etc.), that is a different operation — use the
+  `monday-api` skill with confirmation, not this one.
 
-- `MONDAY_API_TOKEN` disponível para o `monday.sh`. O token fica salvo localmente
-  fora do git em `~/.config/monday/token`; passe-o por chamada com
-  `export MONDAY_API_TOKEN="$(cat ~/.config/monday/token)"`. Se o arquivo não
-  existir nem houver env, **pare e peça** o token — não procure em outros arquivos.
-- `config.json` já vem calibrado para o board **"Desenvolvimento 💨"**
-  (`18391375493`), usuário **"Carlos Felix - Dev 3"**, com os IDs de coluna reais
-  (Etapa, Criticidade, Resp., Par, Conclusão). Para outro board, ajuste
-  `board_ids`, `columns.*` (IDs das colunas) e `status_categories`.
+## Prerequisites
 
-## Procedimento
+- `MONDAY_API_TOKEN` available for `monday.sh`. The token is stored locally outside
+  git at `~/.config/monday/token`; pass it per call with
+  `export MONDAY_API_TOKEN="$(cat ~/.config/monday/token)"`. If the file does not
+  exist and there is no env var, **stop and ask** for the token — do not search
+  other files.
+- `config.json` is already calibrated for board **"Desenvolvimento 💨"**
+  (`18391375493`), user **"Carlos Felix - Dev 3"**, with real column IDs (Etapa,
+  Criticidade, Resp., Par, Conclusão). For another board, adjust `board_ids`,
+  `columns.*` (column IDs), and `status_categories`.
 
-1. **Descubra o modo.** Se o usuário disse explicitamente (início/manhã,
-   meio/tarde, fim/encerrar), passe como argumento. Senão, deixe o script inferir
-   pela hora.
+## Procedure
 
-2. **Rode o coletor** (a partir da pasta da skill, com o token no ambiente):
+1. **Discover the mode.** If the user explicitly said start/morning, mid/afternoon,
+   or end/close, pass it as an argument. Otherwise, let the script infer it by time.
+
+2. **Run the collector** (from the skill folder, with the token in the environment):
    ```bash
    export MONDAY_API_TOKEN="$(cat ~/.config/monday/token)"
-   ./overview.sh            # infere o modo pela hora
-   ./overview.sh inicio     # ou: meio | fim
-   ```
-   Ele resolve seu usuário pelo nome, varre os `board_ids` (com paginação),
-   recolhe itens em que você é **Resp.** ou **Par** (cada item traz `role` e
-   `group`), e imprime um **JSON** com `mode`, `counts` e `buckets` (`atrasados`,
-   `teste_reprovado`, `code_review`, `em_andamento`, `a_fazer`), cada bucket já
-   ordenado por `urgency_score` (desc). Itens onde você é par vêm marcados
-   `role:"par"` — sinalize isso no texto (você não é o dono principal).
+   ./overview.sh            # infers mode by time
+   ./overview.sh inicio     # or: meio | fim
+```
+   It resolves your user by name, scans `board_ids` (with pagination), collects
+   items where you are **Resp.** or **Par** (each item includes `role` and `group`),
+   and prints **JSON** with `mode`, `counts`, and `buckets` (`atrasados`,
+   `teste_reprovado`, `code_review`, `em_andamento`, `a_fazer`), each bucket already
+   sorted by `urgency_score` (desc). Items where you are a partner come marked
+   `role:"par"` — mention that in the text (you are not the main owner).
 
-3. **Trate erros comuns** sem contornar a regra:
-   - Token ausente → peça `export MONDAY_API_TOKEN=...`.
-   - `board_ids` ainda com placeholder → peça os IDs e ajude a preencher o
+3. **Handle common errors** without bypassing the rule:
+   - Missing token → ask for `export MONDAY_API_TOKEN=...`.
+   - `board_ids` still has a placeholder → ask for the IDs and help fill
      `config.json`.
-   - Usuário não encontrado → confirme o `user_name` exato no Monday.
+   - User not found → confirm the exact Monday `user_name`.
 
-4. **Redija o overview** a partir do JSON, no tom do **modo**:
+4. **Write the overview** from the JSON, in the tone of the **mode**:
 
-   - **inicio (plano do dia):** comece pelos `atrasados`, depois `teste_reprovado`
-     e `code_review` (desbloqueiam outros), depois o que atacar em `em_andamento` /
-     `a_fazer`. Sugira um foco para a manhã. Curto e acionável.
-   - **meio (progresso/bloqueios):** destaque o que provavelmente já avançou e o que
-     está travando — reprovados e reviews que continuam pendentes. Aponte o próximo
-     item de maior `urgency_score`.
-   - **fim (fechamento):** o que ainda está aberto e precisa de atenção amanhã;
-     liste explicitamente reprovados/reviews ainda pendentes (o que "voltou pra
-     você"). Sem inventar o que foi concluído — a skill não guarda histórico.
+   - **inicio (day plan):** start with `atrasados`, then `teste_reprovado` and
+     `code_review` (they unblock others), then what to attack in `em_andamento` /
+     `a_fazer`. Suggest a morning focus. Short and actionable.
+   - **meio (progress/blockers):** highlight what likely moved and what is stuck —
+     failed tests and reviews that remain pending. Point to the next item with the
+     highest `urgency_score`.
+   - **fim (closing):** what is still open and needs attention tomorrow; explicitly
+     list failed tests/reviews still pending. Do not invent what was completed —
+     the skill stores no history.
 
-   Sempre: itens `overdue` em destaque no topo; cite `name`, `board`, `status`,
-   prioridade e prazo. Não despeje o JSON cru — escreva um resumo legível. Veja
-   [`references/exemplo-saida.md`](./references/exemplo-saida.md).
+   Always: put `overdue` items at the top; cite `name`, `board`, `status`,
+   priority, and deadline. Do not dump raw JSON — write a readable summary. See
+   [`references/example-output.md`](./references/example-output.md).
 
-## Configuração da classificação
+## Classification configuration
 
-`config.json` controla o mapeamento (sem mexer no código):
+`config.json` controls mapping (without changing code):
 
-- `columns`: IDs **explícitos** das colunas do board — `people_resp` e `people_par`
-  (colunas de pessoa), `status` (coluna de etapa do fluxo, ex.: "Etapa"),
-  `priority` (ex.: "Criticidade") e `date` (ex.: "Conclusão").
-- `status_categories`: quais **labels** de Etapa caem em cada categoria
+- `columns`: **explicit** board column IDs — `people_resp` and `people_par`
+  (people columns), `status` (workflow status column, for example "Etapa"),
+  `priority` (for example "Criticidade"), and `date` (for example "Conclusão").
+- `status_categories`: which **Etapa labels** fall into each category
   (`teste_reprovado`, `code_review`, `em_andamento`, `a_fazer`, `concluido`).
-  `concluido` é omitido do overview.
-- `priority_order`: ordem da Criticidade (do mais para o menos urgente):
+  `concluido` is omitted from the overview.
+- `priority_order`: Criticidade order (most to least urgent):
   `Urgente > Alta > Média > Baixa`.
-- **Nota sobre prazo:** neste board a coluna de data é "Conclusão" (data de
-  *fechamento*), que itens ativos quase sempre têm vazia — então a urgência é, na
-  prática, dirigida por **categoria de status + Criticidade**, e `atrasados`
-  raramente terá itens. É esperado.
+- **Deadline note:** in this board, the date column is "Conclusão" (*closing* date),
+  which active items almost always leave empty — so urgency is effectively driven by
+  **status category + Criticidade**, and `atrasados` will rarely have items. This is expected.
 
-## Teste
+## Test
 
-A lógica de classificação/urgência é testável sem rede:
+Classification/urgency logic is testable without network:
 ```bash
 ./test-overview.sh
 ```
-Usa [`references/fixture-items.json`](./references/fixture-items.json) e
-`overview.sh --classify` (lê JSON cru do stdin, sem chamar o Monday).
+Uses [`references/fixture-items.json`](./references/fixture-items.json) and
+`overview.sh --classify` (reads raw JSON from stdin, without calling Monday).
 
-## Regra de ouro
+## Golden rule
 
-Read-only e via `monday.sh`. Se algo exigir escrever no Monday, **não** faça aqui —
-isso é trabalho da skill `monday-api`, com confirmação explícita do usuário.
+Read-only and through `monday.sh`. If anything requires writing to Monday, **do not
+do it here** — that is work for the `monday-api` skill, with explicit user confirmation.

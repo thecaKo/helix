@@ -1,28 +1,28 @@
 #!/usr/bin/env bash
-# worklog.sh — IO mecânica da vault WorkLog (diário de trabalho dirigido por IA).
+# worklog.sh — mechanical IO for the WorkLog vault (AI-directed work journal).
 #
-# Faz só o trabalho braçal e determinístico: chamar o overview-do-dia (read-only no
-# Monday), coletar os commits do dia nas worktrees, e garantir o esqueleto da daily.
-# A PROSA (síntese da daily/frentes/impedimentos/retro) é escrita pela IA seguindo o
-# AGENTS.md da vault — NÃO por este script.
+# Does only deterministic mechanical work: call overview-do-dia (read-only on
+# Monday), collect day commits in worktrees, and ensure the daily skeleton.
+# PROSE (daily/frentes/impedimentos/retro synthesis) is written by the AI following
+# the vault AGENTS.md — NOT by this script.
 #
-# Uso:
-#   ./worklog.sh paths                 # mostra caminhos resolvidos + data de hoje
-#   ./worklog.sh ensure-daily [DATA]   # cria daily/<DATA>.md (esqueleto) se faltar
+# Usage:
+#   ./worklog.sh paths                 # shows resolved paths + today's date
+#   ./worklog.sh ensure-daily [DATA]   # creates daily/<DATA>.md (skeleton) if missing
 #   ./worklog.sh abrir [MODO] [DATA]   # overview -> raw/<DATA>/monday.json + daily
-#   ./worklog.sh git-dia [DATA]        # commits do autor no dia -> raw/<DATA>/git.md
-#   ./worklog.sh fechar [MODO] [DATA]  # abrir(MODO|fim) + git-dia juntos
+#   ./worklog.sh git-dia [DATA]        # author's day commits -> raw/<DATA>/git.md
+#   ./worklog.sh fechar [MODO] [DATA]  # abrir(MODO|fim) + git-dia together
 #
-# MODO: inicio | meio | fim   (default: deixa o overview inferir pela hora)
-# DATA: AAAA-MM-DD            (default: hoje)
+# MODO: inicio | meio | fim   (default: lets overview infer by time)
+# DATA: YYYY-MM-DD            (default: today)
 #
-# Requer: jq, git, e (para abrir/fechar) MONDAY_API_TOKEN exportado.
+# Requires: jq, git, and (for abrir/fechar) exported MONDAY_API_TOKEN.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG="$SCRIPT_DIR/config.json"
-[ -f "$CONFIG" ] || { echo "worklog.sh: config.json não encontrado em $SCRIPT_DIR" >&2; exit 1; }
-command -v jq >/dev/null || { echo "worklog.sh: jq é obrigatório no PATH" >&2; exit 1; }
+[ -f "$CONFIG" ] || { echo "worklog.sh: config.json not found in $SCRIPT_DIR" >&2; exit 1; }
+command -v jq >/dev/null || { echo "worklog.sh: jq is required in PATH" >&2; exit 1; }
 
 cfg() { jq -r "$1" "$CONFIG"; }
 expand_tilde() { case "$1" in "~"|"~/"*) printf '%s\n' "${HOME}${1#\~}";; *) printf '%s\n' "$1";; esac; }
@@ -33,27 +33,26 @@ OVERVIEW="$SCRIPT_DIR/$(cfg '.overview_script')"
 
 today() { date +%Y-%m-%d; }
 
-weekday_pt() {
+weekday_en() {
   case "$(date -d "$1" +%u 2>/dev/null || date +%u)" in
-    1) echo "segunda";; 2) echo "terça";; 3) echo "quarta";; 4) echo "quinta";;
-    5) echo "sexta";; 6) echo "sábado";; 7) echo "domingo";; *) echo "";;
+    1) echo "Monday";; 2) echo "Tuesday";; 3) echo "Wednesday";; 4) echo "Thursday";;
+    5) echo "Friday";; 6) echo "Saturday";; 7) echo "Sunday";; *) echo "";;
   esac
 }
 
-# Data legível pt-BR para o título: "DD mmm · dia-da-semana" (ex.: "09 jun · terça").
-daylabel_pt() {
+daylabel_en() {
   local d="$1" dd mm
   dd="$(date -d "$d" +%d 2>/dev/null || echo "$d")"
   case "$(date -d "$d" +%m 2>/dev/null)" in
-    01) mm="jan";; 02) mm="fev";; 03) mm="mar";; 04) mm="abr";;
-    05) mm="mai";; 06) mm="jun";; 07) mm="jul";; 08) mm="ago";;
-    09) mm="set";; 10) mm="out";; 11) mm="nov";; 12) mm="dez";; *) mm="";;
+    01) mm="Jan";; 02) mm="Feb";; 03) mm="Mar";; 04) mm="Apr";;
+    05) mm="May";; 06) mm="Jun";; 07) mm="Jul";; 08) mm="Aug";;
+    09) mm="Sep";; 10) mm="Oct";; 11) mm="Nov";; 12) mm="Dec";; *) mm="";;
   esac
-  printf '%s %s · %s' "$dd" "$mm" "$(weekday_pt "$d")"
+  printf '%s %s · %s' "$dd" "$mm" "$(weekday_en "$d")"
 }
 
 ensure_vault() {
-  [ -d "$VAULT" ] || { echo "worklog.sh: vault não encontrada em $VAULT (veja config.json)" >&2; exit 1; }
+  [ -d "$VAULT" ] || { echo "worklog.sh: vault not found at $VAULT (see config.json)" >&2; exit 1; }
   mkdir -p "$VAULT/raw" "$VAULT/daily" "$VAULT/frentes" "$VAULT/impedimentos" "$VAULT/retro"
 }
 
@@ -61,8 +60,8 @@ ensure_daily() {
   local d="${1:-$(today)}"
   ensure_vault
   local f="$VAULT/daily/$d.md"
-  if [ -f "$f" ]; then echo "$f (já existe)"; return 0; fi
-  local label; label="$(daylabel_pt "$d")"
+  if [ -f "$f" ]; then echo "$f (already exists)"; return 0; fi
+  local label; label="$(daylabel_en "$d")"
   cat > "$f" <<EOF
 ---
 type: daily
@@ -72,33 +71,33 @@ tags: [daily]
 
 # 📅 $label
 
-> [!abstract] Resumo do dia
-> _(N itens · N atrasados · foco em …)_
+> [!abstract] Day summary
+> _(N items · N overdue · focus on …)_
 
-## 📋 Plano
+## 📋 Plan
 
-## ✅ Feito
+## ✅ Done
 
-## 🚧 Impedimentos
+## 🚧 Blockers
 
-## 💡 Decisões / Aprendizados
+## 💡 Decisions / Learnings
 
 ---
 
-### 🗣️ Para a daily de amanhã
+### 🗣️ For tomorrow's daily
 EOF
-  echo "$f (criado)"
+  echo "$f (created)"
 }
 
 abrir() {
   local modo="${1:-}" d="${2:-$(today)}"
   ensure_vault
-  [ -x "$OVERVIEW" ] || { echo "worklog.sh: overview.sh não encontrado/executável: $OVERVIEW" >&2; exit 1; }
+  [ -x "$OVERVIEW" ] || { echo "worklog.sh: overview.sh not found/executable: $OVERVIEW" >&2; exit 1; }
   mkdir -p "$VAULT/raw/$d"
   local out="$VAULT/raw/$d/monday.json"
-  echo "→ rodando overview-do-dia ${modo:-(modo automático)}..." >&2
+  echo "-> running overview-do-dia ${modo:-(automatic mode)}..." >&2
   if [ -n "$modo" ]; then "$OVERVIEW" "$modo" > "$out"; else "$OVERVIEW" > "$out"; fi
-  echo "snapshot salvo: $out" >&2
+  echo "snapshot saved: $out" >&2
   ensure_daily "$d" >&2
   cat "$out"
 }
@@ -110,12 +109,11 @@ git_dia() {
   local out="$VAULT/raw/$d/git.md"
   local since="$d 00:00:00" until="$d 23:59:59"
   {
-    echo "# Commits de $d — autor: $GIT_AUTHOR"
+    echo "# Commits for $d — author: $GIT_AUTHOR"
     echo
     local repos; repos="$(cfg '.repos[]')"
     while IFS= read -r repo; do
       [ -d "$repo/.git" ] || [ -f "$repo/.git" ] || { continue; }
-      # cada worktree do repo
       local wt branch
       while IFS= read -r line; do
         case "$line" in
@@ -138,7 +136,7 @@ git_dia() {
       done < <(git -C "$repo" worktree list --porcelain 2>/dev/null; echo)
     done <<< "$repos"
   } > "$out"
-  echo "git do dia salvo: $out" >&2
+  echo "day git saved: $out" >&2
   cat "$out"
 }
 
@@ -155,11 +153,11 @@ case "$cmd" in
     echo "vault:    $VAULT"
     echo "overview: $OVERVIEW"
     echo "autor:    $GIT_AUTHOR"
-    echo "hoje:     $(today) ($(weekday_pt "$(today)"))"
+    echo "today:    $(today) ($(weekday_en "$(today)"))"
     ;;
   ensure-daily) ensure_daily "${1:-}";;
   abrir)        abrir "${1:-}" "${2:-}";;
   git-dia)      git_dia "${1:-}";;
   fechar)       fechar "${1:-}" "${2:-}";;
-  *) echo "worklog.sh: subcomando desconhecido '$cmd' (use: paths|ensure-daily|abrir|git-dia|fechar)" >&2; exit 1;;
+  *) echo "worklog.sh: unknown subcommand '$cmd' (use: paths|ensure-daily|abrir|git-dia|fechar)" >&2; exit 1;;
 esac

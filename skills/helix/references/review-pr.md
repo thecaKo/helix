@@ -1,68 +1,71 @@
-# Procedimento: review-pr (review multi-agente por dimensão)
+# Procedure: review-pr (multi-agent review by dimension)
 
-Use **ao criar a PR de um repo** (após implementar o plano e ter aprovação do
-usuário) ou ao revisar uma PR já aberta. Cria a PR no **padrão do projeto**, dispara
-um **subagente read-only por dimensão** (em paralelo), consolida os achados, aplica
-os fixes por severidade, roda regressão e **itera no máximo 2 vezes**. Encerra
-commitando os fixes, postando **um comentário por achado** na PR (com marcação
-`APLICADO`/`NÃO APLICADO`) e entregando um resumo. **Nunca faz merge** e **nunca sobe
-infra**.
+Use **when creating a PR for one repo** (after implementing the plan and getting
+user approval) or when reviewing an already open PR. Creates the PR in the
+**project standard**, dispatches one **read-only subagent per dimension** (in
+parallel), consolidates findings, applies fixes by severity, runs regression, and
+**iterates at most 2 times**. Ends by committing fixes, posting **one comment per
+finding** on the PR (marked `APPLIED`/`NOT APPLIED`), and delivering a summary.
+**Never merges** and **never brings up infrastructure**.
 
-Escopo: **uma rodada por PR/repo** — opera sobre o diff de um único repo.
+All prompts, subagent briefs, PR comments, commits, reports, and user-facing
+responses from this procedure must be in English.
 
-## Passos
+Scope: **one round per PR/repo** — operates on the diff of a single repo.
 
-### 1. Pré-condição (`where-am-i`)
+## Steps
 
-Confirme o contexto com `where-am-i`. A worktree atual DEVE estar em
-`worktrees/<frente>/<repo>/`, na branch `<type>/<slug>`. Se estiver num repo raiz
-ou em branch protegida → **pare** (mesmas regras do `guard`).
+### 1. Precondition (`where-am-i`)
+
+Confirm context with `where-am-i`. The current worktree MUST be in
+`worktrees/<initiative>/<repo>/`, on branch `<type>/<slug>`. If it is in a root repo
+or protected branch → **stop** (same rules as `guard`).
 
 ```bash
-git rev-parse --show-toplevel        # dentro de worktrees/<frente>/<repo>
+git rev-parse --show-toplevel        # inside worktrees/<initiative>/<repo>
 git rev-parse --abbrev-ref HEAD      # <type>/<slug>
-gh pr view --json number,baseRefName,headRefName,url   # já existe PR?
+gh pr view --json number,baseRefName,headRefName,url   # PR already exists?
 ```
 
-### 1.1. Criar a PR (padrão do projeto)
+### 1.1. Create the PR (project standard)
 
-**Antes de tudo, exija autenticação do `gh`:**
+**Before anything else, require `gh` authentication:**
 
 ```bash
 gh auth status
 ```
 
-Se o `gh` **não estiver autenticado** (comando falha / "not logged in") →
-**TRAVE e retorne**:
+If `gh` **is not authenticated** (command fails / "not logged in") → **BLOCK and
+return**:
 
-> ⛔ `gh` não autenticado. Rode `gh auth login` (ou `! gh auth login` neste chat)
-> antes de criar/revisar a PR. Veja o Setup do framework (README) para instalar e
-> logar o GitHub CLI.
+> `gh` is not authenticated. Run `gh auth login` (or `! gh auth login` in this chat)
+> before creating/reviewing the PR. See the framework setup (README) to install and
+> log in to GitHub CLI.
 
-Não tente criar a PR sem autenticação.
+Do not try to create the PR without authentication.
 
-Se **ainda não existe** PR para a branch atual (e o plano já foi implementado e
-**aprovado pelo usuário**), crie-a seguindo o **padrão fixo**:
+If there is **no existing** PR for the current branch (and the plan has been
+implemented and **approved by the user**), create it using the **fixed standard**:
 
-- **head** = **branch atual** (`<type>/<slug>`).
+- **head** = **current branch** (`<type>/<slug>`).
 - **base** = **`develop`**.
-- Usar o **template de PR** do repo (`.github/PULL_REQUEST_TEMPLATE.md`, se existir)
-  como corpo, preenchido.
+- Use the repo **PR template** (`.github/PULL_REQUEST_TEMPLATE.md`, if it exists)
+  as the body, filled in.
 
 ```bash
 gh pr create --base develop --head "$(git rev-parse --abbrev-ref HEAD)" \
-  --title "<conventional, pt-br>" --body-file .github/PULL_REQUEST_TEMPLATE.md
+  --title "<conventional, English>" --body-file .github/PULL_REQUEST_TEMPLATE.md
 ```
 
-> **⛔ Base e destino são fixos (`branch atual → develop`).** Só troque a base ou o
-> destino se isso estiver **EXPLICITAMENTE escrito no prompt** do usuário (ex.:
-> "abra a PR para `main`"). Sem instrução explícita, **sempre** `develop`.
+> **Base and target are fixed (`current branch → develop`).** Change base or target
+> only if this is **EXPLICITLY written in the user's prompt** (for example:
+> "open the PR to `main`"). Without explicit instruction, **always** use `develop`.
 
-Se a PR já existir, siga direto para o passo 2.
+If the PR already exists, continue directly to step 2.
 
-### 2. Coleta do diff
+### 2. Diff collection
 
-Pegue o diff da PR e detecte se toca frontend:
+Get the PR diff and detect whether it touches frontend:
 
 ```bash
 base=$(gh pr view --json baseRefName -q .baseRefName)
@@ -70,152 +73,149 @@ git diff "origin/$base...HEAD" --stat
 git diff "origin/$base...HEAD"
 ```
 
-**Toca frontend?** Se algum arquivo alterado pertence a um repo/UI de frontend
-(ex.: `web-pharmachatbot`, ou extensões `.tsx`/`.vue`/`.css`/`.scss` de tela) →
-**ative o agente design/UI**; caso contrário, **não** o dispare.
+**Touches frontend?** If any changed file belongs to a frontend/UI repo (for
+example `web-pharmachatbot`, or screen files with `.tsx`/`.vue`/`.css`/`.scss`) →
+**activate the design/UI agent**; otherwise, **do not** dispatch it.
 
-### 3. Fan-out — um subagente read-only por dimensão
+### 3. Fan-out — one read-only subagent per dimension
 
-Use `superpowers:dispatching-parallel-agents` (ferramenta `Agent`) para disparar,
-**em paralelo**, um subagente por dimensão. **Todos são read-only**: apenas
-reportam achados, **nunca editam arquivos** (a aplicação de fixes é feita depois,
-sequencialmente, por você — evita conflito de escrita no worktree).
+Use `superpowers:dispatching-parallel-agents` (the `Agent` tool) to dispatch, **in
+parallel**, one subagent per dimension. **All are read-only**: they only report
+findings and **never edit files** (fix application happens later, sequentially, by
+you — this avoids write conflicts in the worktree).
 
-Dimensões:
+Dimensions:
 
-| Agente | Foco |
+| Agent | Focus |
 |---|---|
-| **lógica** | bugs, edge cases, null/undefined, off-by-one, condições erradas, race conditions |
-| **padrões** | padrões do repo, SOLID, acoplamento, reuso, nomenclatura, estrutura |
-| **testes** | cobertura do diff, casos faltando, testes frágeis, se validam o comportamento |
-| **performance** | N+1, vazamento de memória, loops custosos, re-renders, bundle size |
-| **segurança** | injeção, secrets vazados, authz/authn, validação de input, deps vulneráveis |
-| **design/UI** | *só se toca frontend* — aderência aos tokens e regras do `design.md` |
+| **logic** | bugs, edge cases, null/undefined, off-by-one, wrong conditions, race conditions |
+| **patterns** | repo patterns, SOLID, coupling, reuse, naming, structure |
+| **tests** | diff coverage, missing cases, fragile tests, whether behavior is validated |
+| **performance** | N+1, memory leaks, expensive loops, re-renders, bundle size |
+| **security** | injection, leaked secrets, authz/authn, input validation, vulnerable deps |
+| **design/UI** | *only if frontend is touched* — adherence to `design.md` tokens and rules |
 
-**Brief de cada subagente** (autossuficiente): inclua o diff (ou os hunks
-relevantes), o caminho absoluto do repo, a dimensão e a rubrica de severidade.
-Regras do projeto a embutir no brief quando se aplicarem:
+**Brief for each subagent** (self-contained): include the diff (or relevant hunks),
+the absolute repo path, the dimension, and the severity rubric. Embed project rules
+in the brief when they apply:
 
-- **`neo-api`:** o agente consulta a **documentação do repo primeiro**; recorre ao
-  código-fonte só se precisar de mais contexto (economiza tokens).
-- **design/UI:** o agente carrega o `design.md` da raiz e confere os tokens
-  existentes (ex.: `primary-base #e6284a`, `CARD_RADIUS 18px`, `SHADOW_MD`) e os
-  Do's & Don'ts — nunca inventa valores avulsos.
+- **`neo-api`:** the agent checks **repo documentation first**; it uses source code
+  only if more context is needed (saves tokens).
+- **design/UI:** the agent loads root `design.md` and checks existing tokens (for
+  example `primary-base #e6284a`, `CARD_RADIUS 18px`, `SHADOW_MD`) and Do's &
+  Don'ts — never invents ad-hoc values.
 
-Cada subagente retorna **apenas** achados estruturados, um por item:
+Each subagent returns **only** structured findings, one per item:
 
+```yaml
+- file: <path relative to repo>
+  line: <number or range>
+  dimension: <logic|patterns|tests|performance|security|design>
+  severity: <low|medium|high>
+  description: <the objective problem>
+  suggested_fix: <concrete change>
 ```
-- arquivo: <path relativo ao repo>
-  linha: <número ou intervalo>
-  dimensão: <logica|padroes|testes|performance|seguranca|design>
-  severidade: <low|medium|high>
-  descrição: <o problema, objetivo>
-  fix_sugerido: <mudança concreta>
-```
 
-### 4. Consolidação
+### 4. Consolidation
 
-Junte os achados de todos os agentes e **deduplique**: mesma linha apontada por
-várias dimensões vira **um** item (registre as dimensões que convergiram).
+Merge findings from all agents and **deduplicate**: the same line flagged by
+multiple dimensions becomes **one** item (record the converging dimensions).
 
-### 5. Aplicação por severidade
+### 5. Apply by severity
 
-- **low / medium →** aplique o fix **automaticamente** no worktree (edições
-  sequenciais, você mesmo). Marca → `APLICADO`.
-- **high (regra de negócio) →** **NÃO aplique**. São achados que mudam regra de
-  negócio / comportamento observável do produto, ou decisão de arquitetura não
-  trivial. Para cada um: **peça permissão explícita** antes de qualquer edição.
-  Marca → `NÃO APLICADO`.
+- **low / medium →** apply the fix **automatically** in the worktree (sequential
+  edits, by you). Mark → `APPLIED`.
+- **high (business rule) →** **DO NOT apply**. These findings change business
+  rules / observable product behavior, or encode a non-trivial architecture
+  decision. For each one: **ask explicit permission** before any edit. Mark →
+  `NOT APPLIED`.
 
-**Independente da severidade, TODO achado vira comentário na PR** (passo 8) — o que
-muda é só a marcação (`APLICADO` para os que você corrigiu, `NÃO APLICADO` para os
-que ficaram pendentes/aguardando permissão).
+**Regardless of severity, EVERY finding becomes a PR comment** (step 8). Only the
+mark changes (`APPLIED` for fixed items, `NOT APPLIED` for pending/waiting items).
 
-### 6. Regressão (após aplicar os fixes)
+### 6. Regression (after applying fixes)
 
-Rode a **regressão completa** do repo desta worktree:
+Run the **full regression** for this worktree repo:
 
-1. **Unitários** — bateria do `guard` (comando do `CLAUDE.md` da worktree, campo
-   "Testes unitários"; detecte o gerenciador pelo lockfile — pnpm/yarn/npm/
-   poetry/pip).
-2. **Lint + typecheck** do repo.
-3. **Integração** — *somente se o ambiente já estiver de pé* (mesma regra do
-   `finish-feature`: o agente **observa**, nunca **provisiona** infra).
+1. **Unit tests** — `guard` suite (command from the worktree `CLAUDE.md`, field
+   "Unit tests"; detect package manager by lockfile — pnpm/yarn/npm/poetry/pip).
+2. **Lint + typecheck** for the repo.
+3. **Integration** — *only if the environment is already up* (same rule as
+   `finish-feature`: the agent **observes**, never **provisions** infrastructure).
 
-Aplique `superpowers:verification-before-completion`: só afirme "passou" com a saída
-real em mãos. Se algo quebrar → `superpowers:systematic-debugging`.
+Apply `superpowers:verification-before-completion`: only say "passed" with real
+output in hand. If anything breaks → `superpowers:systematic-debugging`.
 
-### 7. Loop (máx. 2 iterações)
+### 7. Loop (max 2 iterations)
 
-Se a regressão **quebrou** algo, **ou** surgiram **novos achados acionáveis** após
-os fixes → **repita** a partir do passo 3 (re-dispare os agentes sobre o diff
-atualizado).
+If regression **broke** something, **or** new actionable findings appeared after
+fixes → **repeat** from step 3 (re-dispatch agents on the updated diff).
 
-**Máximo de 2 iterações.** Na 2ª, **encerre** mesmo que restem pendências — elas
-viram itens reportados (passos 8 e 9), não bloqueio.
+**Maximum 2 iterations.** On the 2nd, **finish** even if pending items remain —
+they become reported items (steps 8 and 9), not a blocker.
 
-### 8. Comentários na PR — **1 comentário = 1 problema**
+### 8. PR comments — **1 comment = 1 problem**
 
-**Identidade do bot (opcional).** Por padrão os comentários saem na conta logada no
-`gh` (a do usuário). Para postá-los como um **GitHub App** (`<app>[bot]`), gere um
-installation token **só para o passo de comentar**:
+**Bot identity (optional).** By default comments use the account logged into `gh`
+(the user's account). To post as a **GitHub App** (`<app>[bot]`), generate an
+installation token **only for the comment step**:
 
 ```bash
-eval "$(scripts/helix-bot-token.sh)"   # exporta GH_TOKEN do App (vale ~1h)
+eval "$(scripts/helix-bot-token.sh)"   # exports App GH_TOKEN (valid ~1h)
 ```
 
-- Se o script existir e a config estiver completa (env `HELIX_BOT_*` ou
-  `~/.helix/bot.env`) → os `gh pr comment`/`gh api` deste passo usam o **bot**.
-- Se o script falhar ou não houver config → **caia no `gh` do usuário** (não trave;
-  é só a identidade do comentário que muda, não a capacidade de comentar).
-- A **criação da PR** (passo 1.1) continua na conta do usuário — só os comentários
-  de review usam o bot. Veja o setup do App no README.
+- If the script exists and config is complete (env `HELIX_BOT_*` or
+  `~/.helix/bot.env`) → `gh pr comment`/`gh api` in this step use the **bot**.
+- If the script fails or config is missing → **fall back to the user's `gh`** (do
+  not block; only comment identity changes, not the ability to comment).
+- **PR creation** (step 1.1) remains on the user's account — only review comments
+  use the bot. See the App setup in README.
 
-Poste **todos os achados** como comentários na PR via `gh`, **independente da
-severidade** (low, medium ou high). Regras:
+Post **all findings** as PR comments through `gh`, **regardless of severity** (low,
+medium, or high). Rules:
 
-- **1 comentário = 1 problema.** Não junte vários achados num comentário só.
-- **Filtre e concatene os parecidos.** Achados que são o **mesmo problema** (mesma
-  causa, mesmo arquivo/área, ou que se resolvem com o mesmo fix) viram **um único**
-  comentário. Use isso para reduzir ruído.
-- **Máximo de 10 comentários por PR.** Se após a deduplicação/concatenação sobrarem
-  mais de 10, **priorize por severidade** (high > medium > low) e **agrupe o
-  excedente** em comentários temáticos até caber no teto. Nunca ultrapasse 10.
-- **Cada comentário começa com a marcação:**
-  - `✅ APLICADO` — fix já aplicado no worktree (low/medium).
-  - `⛔ NÃO APLICADO` — pendente; high de regra de negócio aguardando permissão, ou
-    excedente não corrigido. Para os HIGH, inclua o **pedido de permissão** para
-    aplicar.
+- **1 comment = 1 problem.** Do not group unrelated findings into one comment.
+- **Filter and concatenate similar findings.** Findings that are the **same
+  problem** (same cause, same file/area, or solved by the same fix) become **one**
+  comment. Use this to reduce noise.
+- **Maximum 10 comments per PR.** If more than 10 remain after
+  deduplication/concatenation, **prioritize by severity** (high > medium > low) and
+  **group the excess** into thematic comments until it fits the ceiling. Never
+  exceed 10.
+- **Each comment starts with the mark:**
+  - `APPLIED` — fix already applied in the worktree (low/medium).
+  - `NOT APPLIED` — pending; high business-rule item waiting for permission, or
+    unfixed excess. For HIGH items, include the **permission request** to apply.
 
-**Formato de cada comentário:**
+**Comment format:**
 
+```text
+<APPLIED | NOT APPLIED> · <dimension> · <severity>
+
+<objective description of the problem>
+
+Fix: <what was done, or what is suggested>
 ```
-<✅ APLICADO | ⛔ NÃO APLICADO> · <dimensão> · <severidade>
 
-<descrição objetiva do problema>
+Prefer posting **inline** (anchored at `file:line`); fall back to a general PR
+comment only when anchoring does not apply.
 
-Fix: <o que foi feito, ou o que se sugere fazer>
-```
+### 9. Closing
 
-Poste preferencialmente **inline** (ancorado em `arquivo:linha`); caia para
-comentário geral da PR só quando a âncora não se aplicar.
-
-### 9. Encerramento
-
-- **Commit dos fixes aplicados** — siga o `guard`: rode o checklist do `guard`
-  (confinamento, pasta==branch, unit verdes), e commite em **pt-br**, **conventional
-  commits**, **subject-only** + footer Co-Author. Ex.:
-  `fix: corrige edge cases apontados no review da PR`.
-- **Resumo no chat** — tabela por **dimensão × severidade** (aplicados × pendentes),
-  nº de comentários postados (lembrando: teto de 10), nº de iterações e status da
-  regressão.
-- **Não faça merge.** Para fechar a branch, use `finish-feature` /
+- **Commit applied fixes** — follow `guard`: run the `guard` checklist
+  (confinement, folder==branch, green units), and commit in **English**,
+  **conventional commits**, **subject-only** + Co-Author footer. Example:
+  `fix: address PR review edge cases`.
+- **Chat summary** — table by **dimension × severity** (applied × pending), number
+  of posted comments (remember: ceiling of 10), number of iterations, and
+  regression status.
+- **Do not merge.** To finish the branch, use `finish-feature` /
   `superpowers:finishing-a-development-branch`.
 
-## Regra de ouro
+## Golden rule
 
-Os subagentes **só observam e reportam**; quem edita é o orquestrador, e só nas
-severidades low/medium. **HIGH (regra de negócio) sempre pede permissão.** **Todo
-achado vira comentário na PR (1 comentário = 1 problema, marcado `APLICADO`/`NÃO
-APLICADO`), concatenando os parecidos e no máximo 10 por PR.** Nunca mais que **2
-iterações**. Nunca merge, nunca subir infra.
+Subagents **only observe and report**; the orchestrator edits, and only for
+low/medium severities. **HIGH (business rule) always asks permission.** **Every
+finding becomes a PR comment (1 comment = 1 problem, marked `APPLIED`/`NOT
+APPLIED`), concatenating similar findings and capped at 10 comments per PR.**
+Never more than **2 iterations**. Never merge, never bring up infrastructure.

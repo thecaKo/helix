@@ -2,7 +2,7 @@
   "vault_path": "~/Documents/WorkLog",
   "git_author": "cako",
   "overview_script": "../overview-do-dia/overview.sh",
-  "_repos_note": "Raízes de repo (cada uma cobre suas worktrees via 'git worktree list'). O git-dia varre commits do autor no dia em TODAS as worktrees destes repos.",
+  "_repos_note": "Repo roots (each covers its worktrees via 'git worktree list'). git-dia scans the author's day commits in ALL worktrees for these repos.",
   "repos": [
     "/home/cako/Documents/projetos/pharmachatbot/web-pharmachatbot",
     "/home/cako/Documents/projetos/pharmachatbot/neo-api-pharmachatbot",
@@ -11,7 +11,7 @@
     "/home/cako/Documents/projetos/pharmachatbot/messaging-pharmachatbot",
     "/home/cako/Documents/projetos/pharmachatbot/pharma-agent-v2"
   ],
-  "_frentes_note": "Mapa frente→branches só para a IA correlacionar commits a frentes ao escrever a prosa. As branches reais podem divergir do CLAUDE.md; confie no que o git-dia reportar.",
+  "_frentes_note": "Initiative→branches map only for the AI to correlate commits to initiatives when writing prose. Real branches may diverge from CLAUDE.md; trust what git-dia reports.",
   "frentes": {
     "atendimentos-v2": ["feat/atendimentos-v2-reborn", "feat/atendimentos-e-grupos-v2"],
     "dashboard-v2": ["feat/dashboard-v2"],

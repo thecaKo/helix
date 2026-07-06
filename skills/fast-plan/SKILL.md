@@ -1,72 +1,76 @@
 ---
 name: fast-plan
-description: Use quando houver spec/design aprovado e for preciso criar o plano de implementação de uma feature multi-task nesta base — substitui superpowers:writing-plans aqui. Gatilhos: "criar plano", "plano de implementação", "tasks.md", handoff do brainstorming.
+description: Use when an approved spec/design exists and this base needs an implementation plan for a multi-task feature. It replaces superpowers:writing-plans here. Triggers: "create plan", "implementation plan", "tasks.md", brainstorming handoff.
 ---
 
 # fast-plan
 
-## Visão geral
+## Language
 
-O plano é um **contrato de execução** (estilo `tasks.md` do spec-kit), não um
-rascunho do código. Quem escreve código é o subagente, via TDD, na execução; o
-plano diz **o que**, **onde** e **como verificar** — nunca o código pronto.
+All skill operation, prompts, generated plans, and user-facing responses must be in English.
 
-**Anuncie:** "Usando fast-plan para criar o plano de implementação."
+## Overview
 
-**Salvar em:** `sdd/plans/YYYY-MM-DD-<feature>-tasks.md` (no hub pharmatree —
-`docs/` é repo clonado, gitignored).
+The plan is an **execution contract** (`tasks.md` spec-kit style), not a code
+draft. The subagent writes code during execution through TDD; the plan states
+**what**, **where**, and **how to verify** — never the finished code.
 
-## Estrutura do documento
+**Announce:** "Using fast-plan to create the implementation plan."
 
-1. **Header** — Goal (1 frase), Arquitetura (2–3 frases), Stack, link do spec.
-2. **Context Pack** — escrito UMA vez; a fast-exec injeta verbatim em cada
-   subagente para ninguém re-explorar o repo:
-   - Comandos exatos de teste/lint/build (por repo, se multi-repo).
-   - Convenções aplicáveis (padrões do código, regras do CLAUDE.md/design.md).
-   - Mapa dos arquivos tocados — 1 linha por arquivo dizendo o papel atual dele.
-3. **Tasks** agrupadas por camada de dependência (L1 → L2 → …).
+**Save to:** `sdd/plans/YYYY-MM-DD-<feature>-tasks.md` (in the pharmatree hub —
+`docs/` is a cloned repo and gitignored).
 
-## Formato de task
+## Document structure
+
+1. **Header** — Goal (1 sentence), Architecture (2–3 sentences), Stack, spec link.
+2. **Context Pack** — written ONCE; fast-exec injects it verbatim into each
+   subagent so nobody re-explores the repo:
+   - Exact test/lint/build commands (per repo, if multi-repo).
+   - Applicable conventions (code patterns, CLAUDE.md/design.md rules).
+   - Map of touched files — 1 line per file describing its current role.
+3. **Tasks** grouped by dependency layer (L1 → L2 → …).
+
+## Task format
 
 ```markdown
-### T3 [P] [fast] — Validador de payload  (camada L2, depende: T1)
-**Arquivos:** Create: src/validators/payload.ts · Test: tests/validators/payload.test.ts
-**Aceitação:** aceita payload com X; rejeita Y com erro Z
-**Testes:** casos esperados, nomeados (sem o código deles)
-**Design:** só quando houver decisão não-óbvia — aí sim com snippet
+### T3 [P] [fast] — Payload validator  (layer L2, depends on: T1)
+**Files:** Create: src/validators/payload.ts · Test: tests/validators/payload.test.ts
+**Acceptance:** accepts payload with X; rejects Y with error Z
+**Tests:** expected named cases (without their code)
+**Design:** only when there is a non-obvious decision — then include a snippet
 ```
 
-## Regras
+## Rules
 
-| Regra | Detalhe |
+| Rule | Detail |
 |---|---|
-| Camadas | Toda task declara camada e dependências; camadas formam DAG (sem ciclo) |
-| Intra-camada | **Proibido depender de task da MESMA camada** — se T depende de T', T vai para a camada seguinte. Tasks da mesma camada são sempre mutuamente independentes |
-| `[P]` | Paralelizável: arquivos **disjuntos** de todas as outras `[P]` da mesma camada |
-| Tier | `[fast]` = mecânica (1–2 arquivos, spec completa) → modelo rápido; `[opus]` = integração/julgamento/multi-arquivo → Opus |
-| Tamanho | Task executável em ≤ ~30 min por um subagente; maior que isso, quebre |
-| Aceitação | Verificável por teste ou comando — nunca "tratar erros adequadamente" |
+| Layers | Every task declares layer and dependencies; layers form a DAG (no cycles) |
+| Same-layer dependency | **Depending on a task in the SAME layer is forbidden** — if T depends on T', T moves to the next layer. Tasks in the same layer are always mutually independent |
+| `[P]` | Parallelizable: files are **disjoint** from every other `[P]` in the same layer |
+| Tier | `[fast]` = mechanical (1–2 files, complete spec) → fast model; `[opus]` = integration/judgment/multi-file → Opus |
+| Size | Executable in ≤ ~30 min by one subagent; split anything larger |
+| Acceptance | Verifiable by test or command — never "handle errors properly" |
 
-## Proibições
+## Forbidden
 
-- **Código completo nos steps** (inversão do writing-plans): código aparece só
-  em **Design**, quando a decisão não for óbvia para um dev competente.
-- Placeholders: "TBD", "TODO", "similar à task N", aceitação vaga.
-- `[P]` em duas tasks da mesma camada que tocam o mesmo arquivo.
-- Referenciar tipo/função que nenhuma task define.
+- **Complete code in steps** (the inverse of writing-plans): code appears only in
+  **Design**, when the decision is not obvious to a competent developer.
+- Placeholders: "TBD", "TODO", "similar to task N", vague acceptance.
+- `[P]` on two tasks in the same layer that touch the same file.
+- Referencing a type/function that no task defines.
 
-## Self-review (antes de entregar)
+## Self-review (before delivery)
 
-1. **Cobertura:** cada requisito do spec aponta para uma task? Liste lacunas.
-2. **Disjunção:** as `[P]` de cada camada têm arquivos disjuntos?
-3. **DAG:** dependências respeitam as camadas (nada depende de camada posterior
-   **nem da mesma camada** — dependência intra-camada = task na camada errada)?
-4. **Tiers:** alguma `[fast]` exige julgamento ou toca 3+ arquivos? Promova a `[opus]`.
-5. **Verificabilidade:** toda aceitação tem teste/comando associado?
+1. **Coverage:** does every spec requirement point to a task? List gaps.
+2. **Disjointness:** do `[P]` tasks in each layer have disjoint files?
+3. **DAG:** do dependencies respect layers (nothing depends on a later layer
+   **or the same layer** — intra-layer dependency = task in the wrong layer)?
+4. **Tiers:** does any `[fast]` require judgment or touch 3+ files? Promote to `[opus]`.
+5. **Verifiability:** does every acceptance criterion have an associated test/command?
 
-Corrija inline e siga.
+Fix inline and continue.
 
 ## Handoff
 
-"Plano salvo em `sdd/plans/<arquivo>`. Executar com a skill **fast-exec**."
-Não ofereça executing-plans nem subagent-driven-development.
+"Plan saved at `sdd/plans/<file>`. Execute it with the **fast-exec** skill."
+Do not offer executing-plans or subagent-driven-development.

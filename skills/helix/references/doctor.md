@@ -1,53 +1,55 @@
-# Procedimento: doctor (reparar worktrees + sincronizar mapa)
+# Procedure: doctor (repair worktrees + sync map)
 
-Use para consertar worktrees `prunable`/quebradas e reconciliar o Mapa de frentes
-ativas com a realidade do disco. **Não-destrutivo:** liste e proponha; só renomeie/
-mova/remova com confirmação explícita do usuário.
+Use to fix `prunable`/broken worktrees and reconcile the Active initiatives map
+with disk reality. **Non-destructive:** list and propose; only rename/move/remove
+with explicit user confirmation.
 
-## Passos
+All prompts, reports, and user-facing responses from this procedure must be in English.
 
-1. **Inventário por repo raiz**
+## Steps
 
-   Para cada repo origem na base:
+1. **Inventory by root repo**
+
+   For each origin repo in the base:
    ```bash
    git -C <repo> worktree list
    ```
-   Anote paths, branches e marcações `prunable`.
+   Record paths, branches, and `prunable` markers.
 
-2. **Reparar paths defasados** (worktrees movidas → `prunable`)
+2. **Repair stale paths** (moved worktrees → `prunable`)
 
    ```bash
    git -C <repo> worktree repair
    ```
-   `repair` reconecta os metadados ao novo caminho. Rode na base inteira se útil:
+   `repair` reconnects metadata to the new path. Run across the whole base if useful:
    ```bash
    git -C <repo> worktree repair worktrees/*/<repo>
    ```
 
-3. **Podar órfãos** (worktree cujo diretório não existe mais) — só após confirmar:
+3. **Prune orphans** (worktree whose directory no longer exists) — only after confirmation:
 
    ```bash
    git -C <repo> worktree prune
    ```
 
-4. **Auditar contra a convenção.** Para cada worktree em `worktrees/<frente>/<repo>`,
-   sinalize (sem corrigir automaticamente):
-   - subpasta com nome **≠** do repo origem (`git rev-parse --git-common-dir`);
-   - branch **≠** esperada (`<frente>` com `-`→`/`);
-   - branch protegida (`main`/`master`/`develop`) dentro de uma frente.
+4. **Audit against convention.** For each worktree in `worktrees/<initiative>/<repo>`,
+   flag (without auto-fixing):
+   - subfolder name **≠** origin repo (`git rev-parse --git-common-dir`);
+   - branch **≠** expected (`<initiative>` with `-`→`/`);
+   - protected branch (`main`/`master`/`develop`) inside an initiative.
 
-   Para cada divergência, **proponha** o comando de correção (renomear pasta, criar/
-   trocar branch) e peça confirmação.
+   For each divergence, **propose** the correction command (rename folder, create/
+   switch branch) and ask for confirmation.
 
-5. **Regenerar o Mapa de frentes ativas** no `CLAUDE.md` raiz a partir do estado real:
-   uma linha por frente com `| frente | repos | branch | status |`. Preserve os campos
-   de objetivo/status já preenchidos manualmente quando possível.
+5. **Regenerate the Active initiatives map** in the root `CLAUDE.md` from real
+   state: one line per initiative with `| initiative | repos | branch | status |`.
+   Preserve manually filled goal/status fields when possible.
 
-6. **Reporte** um resumo: o que foi reparado, o que foi podado (se confirmado) e a
-   lista de divergências pendentes de decisão.
+6. **Report** a summary: what was repaired, what was pruned (if confirmed), and the
+   list of divergences still waiting for a decision.
 
-## Lembrete
+## Reminder
 
-A fonte da verdade é o git. Este procedimento não inventa estado: ele lê
-`worktree list` + `git-common-dir` e ajusta documentação/metadados para refletir o
-real.
+Git is the source of truth. This procedure does not invent state: it reads
+`worktree list` + `git-common-dir` and adjusts documentation/metadata to reflect
+reality.

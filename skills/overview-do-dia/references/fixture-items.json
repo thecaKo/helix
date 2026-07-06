@@ -4,12 +4,12 @@
   "mode": "inicio",
   "user": { "id": "72050730", "name": "Carlos Felix - Dev 3" },
   "items": [
-    { "id": "A", "name": "Atendimentos V2 — QA reprovou", "board": "Desenvolvimento", "group": "Em Teste", "role": "resp", "status": "Teste reprovado", "priority": "Alta", "due_date": "2026-06-08" },
-    { "id": "B", "name": "PR aguardando review", "board": "Desenvolvimento", "group": "Code Review", "role": "resp", "status": "Code Review", "priority": "Urgente", "due_date": "2026-06-12" },
-    { "id": "C", "name": "Integração PDV Alpha 7", "board": "Desenvolvimento", "group": "Atividades em Paralelo", "role": "resp", "status": "Em Atividade", "priority": "Média", "due_date": null },
-    { "id": "D", "name": "Reconstrução - Relatórios", "board": "Desenvolvimento", "group": "Product Backlog", "role": "resp", "status": "Backlog", "priority": "Baixa", "due_date": "2026-06-09" },
-    { "id": "E", "name": "Task já concluída", "board": "Desenvolvimento", "group": "Concluído", "role": "resp", "status": "Concluído", "priority": "Alta", "due_date": "2026-06-01" },
-    { "id": "F", "name": "Outro teste reprovado", "board": "Desenvolvimento", "group": "Em Teste", "role": "par", "status": "Teste reprovado", "priority": "Urgente", "due_date": null },
-    { "id": "G", "name": "Card com status desconhecido", "board": "Desenvolvimento", "group": "Sprint Board", "role": "par", "status": "Investigando???", "priority": null, "due_date": null }
+    { "id": "A", "name": "Atendimentos V2 — QA failed", "board": "Desenvolvimento", "group": "Em Teste", "role": "resp", "status": "Teste reprovado", "priority": "Alta", "due_date": "2026-06-08" },
+    { "id": "B", "name": "PR waiting for review", "board": "Desenvolvimento", "group": "Code Review", "role": "resp", "status": "Code Review", "priority": "Urgente", "due_date": "2026-06-12" },
+    { "id": "C", "name": "Alpha 7 POS integration", "board": "Desenvolvimento", "group": "Atividades em Paralelo", "role": "resp", "status": "Em Atividade", "priority": "Média", "due_date": null },
+    { "id": "D", "name": "Reports rebuild", "board": "Desenvolvimento", "group": "Product Backlog", "role": "resp", "status": "Backlog", "priority": "Baixa", "due_date": "2026-06-09" },
+    { "id": "E", "name": "Already completed task", "board": "Desenvolvimento", "group": "Concluído", "role": "resp", "status": "Concluído", "priority": "Alta", "due_date": "2026-06-01" },
+    { "id": "F", "name": "Another failed test", "board": "Desenvolvimento", "group": "Em Teste", "role": "par", "status": "Teste reprovado", "priority": "Urgente", "due_date": null },
+    { "id": "G", "name": "Card with unknown status", "board": "Desenvolvimento", "group": "Sprint Board", "role": "par", "status": "Investigando???", "priority": null, "due_date": null }
   ]
 }

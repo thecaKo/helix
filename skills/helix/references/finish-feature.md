@@ -1,43 +1,48 @@
-# Procedimento: finish-feature (fechar feature + testes de integração)
+# Procedure: finish-feature (finish feature + integration tests)
 
-Use ao concluir uma feature/frente, antes de abrir PR ou integrar. Roda os **testes
-de integração** — mas **somente se o ambiente de teste já estiver pronto**. O agente
-**nunca sobe infra por conta própria** (docker, migrations, seeds): se faltar algo,
-ele apenas reporta e para.
+Use when concluding a feature/initiative, before opening a PR or integrating. Runs
+**integration tests** — but **only if the test environment is already ready**. The
+agent **never brings up infrastructure by itself** (docker, migrations, seeds): if
+anything is missing, it only reports and stops.
 
-## Passos
+All prompts, reports, and user-facing responses from this procedure must be in English.
 
-1. **Confirme o contexto** com `where-am-i` (frente, repos, branch). Garanta que toda
-   a feature já foi commitada via `guard` (unit tests verdes em cada repo).
+## Steps
 
-2. **Verifique se o ambiente de testes está pronto** (somente checagens *read-only*):
-   - containers de teste no ar? `docker ps` mostra os serviços esperados
-     (ex.: MySQL/Redis de teste)?
-   - banco acessível e **migrations** aplicadas? (ping/health-check do projeto)
-   - **seeds** carregadas, se a suíte exigir?
+1. **Confirm context** with `where-am-i` (initiative, repos, branch). Ensure the
+   whole feature has already been committed through `guard` (green unit tests in
+   each repo).
 
-   O comando/health-check exato vem do `CLAUDE.md` da worktree (campo "Ambiente de
-   integração"). Não recrie nem suba nada — apenas observe.
+2. **Check whether the test environment is ready** (only *read-only* checks):
+   - test containers up? `docker ps` shows the expected services (for example,
+     test MySQL/Redis)?
+   - database reachable and **migrations** applied? (project ping/health-check)
+   - **seeds** loaded, if the suite requires them?
 
-3. **Decisão:**
-   - **Ambiente pronto** → rode a bateria de **testes de integração** do repo
-     (campo "Testes de integração" do `CLAUDE.md` da worktree; ex.:
+   The exact command/health-check comes from the worktree `CLAUDE.md` (field
+   "Integration environment"). Do not recreate or start anything — only observe.
+
+3. **Decision:**
+   - **Environment ready** → run the repo **integration test** suite (field
+     "Integration tests" in the worktree `CLAUDE.md`; for example,
      `pnpm vitest:integration`). Use `superpowers:verification-before-completion`:
-     reporte a saída real. Se falhar → `superpowers:systematic-debugging`.
-   - **Ambiente NÃO pronto** → **não execute** os testes. Reporte exatamente o que
-     falta e **liste os comandos** para o usuário preparar o ambiente (ex.:
-     `docker compose up -d`, `pnpm test:db:init`, seeds). Marque a feature como
-     "integração pendente — aguardando ambiente/execução manual".
+     report the real output. If it fails → `superpowers:systematic-debugging`.
+   - **Environment NOT ready** → **do not execute** tests. Report exactly what is
+     missing and **list the commands** for the user to prepare the environment (for
+     example, `docker compose up -d`, `pnpm test:db:init`, seeds). Mark the feature
+     as "integration pending — waiting for environment/manual execution".
 
-4. **Repita** o passo 3 para cada repo envolvido na frente que tenha suíte de
-   integração.
+4. **Repeat** step 3 for every repo involved in the initiative that has an
+   integration suite.
 
-5. **Fechar a branch:** quando os testes (que puderam rodar) estiverem verdes, use
-   `superpowers:finishing-a-development-branch` para decidir merge / PR / cleanup da
-   frente. Atualize o status no **Mapa de frentes ativas** do `CLAUDE.md` raiz.
+5. **Finish the branch:** when tests that could run are green, use
+   `superpowers:finishing-a-development-branch` to decide merge / PR / cleanup for
+   the initiative. Update the status in the **Active initiatives map** in the root
+   `CLAUDE.md`.
 
-## Regra de ouro
+## Golden rule
 
-O agente **observa** o ambiente, não o **provisiona**. Suítes Mongo in-memory
-(MongoMemoryServer) não dependem de infra externa e podem rodar normalmente; suítes
-que exigem MySQL/Redis/Docker só rodam se o usuário já tiver subido o ambiente.
+The agent **observes** the environment, it does not **provision** it. In-memory
+Mongo suites (MongoMemoryServer) do not depend on external infrastructure and can
+run normally; suites that require MySQL/Redis/Docker only run if the user has
+already brought the environment up.

@@ -1,48 +1,50 @@
-# Procedimento: onde-estou (localizar-se / retomar frente)
+# Procedure: where-am-i (locate yourself / resume initiative)
 
-Use quando precisar descobrir onde está, qual repo/branch, ou retomar uma frente
-depois de alternar entre tarefas.
+Use when you need to discover where you are, which repo/branch you are in, or
+resume an initiative after switching tasks.
 
-## Passos
+All prompts, reports, and user-facing responses from this procedure must be in English.
 
-1. **Caminho da worktree atual**
+## Steps
+
+1. **Current worktree path**
 
    ```bash
    git rev-parse --show-toplevel
    ```
-   Se o caminho **não** estiver dentro de `worktrees/<frente>/<repo>`, você
-   provavelmente está num **repo raiz** — pare e avise: nenhum trabalho/commit
-   deve acontecer aqui.
+   If the path is **not** inside `worktrees/<initiative>/<repo>`, you are probably
+   in a **root repo** — stop and warn: no work/commit should happen here.
 
-2. **Repo origem real**
+2. **Real origin repo**
 
    ```bash
    git rev-parse --git-common-dir
    ```
-   O diretório `.git` retornado pertence ao repo raiz de origem (ex.:
-   `…/web-pharmachatbot/.git` → repo origem `web-pharmachatbot`).
+   The returned `.git` directory belongs to the origin root repo (example:
+   `…/web-pharmachatbot/.git` → origin repo `web-pharmachatbot`).
 
-3. **Branch atual**
+3. **Current branch**
 
    ```bash
    git rev-parse --abbrev-ref HEAD
    ```
 
-4. **Derive a frente** do caminho: em `worktrees/<frente>/<repo>`, `<frente>` é a
-   penúltima pasta. A branch esperada é `<frente>` com o primeiro `-` virando `/`.
+4. **Derive the initiative** from the path: in `worktrees/<initiative>/<repo>`,
+   `<initiative>` is the second-to-last folder. The expected branch is
+   `<initiative>` with the first `-` changed to `/`.
 
-5. **Leia o Mapa de frentes ativas** no `CLAUDE.md` raiz da base (sobir até achar a
-   pasta que contém `worktrees/`). Cruze a frente atual com o mapa para recuperar o
-   objetivo e os outros repos envolvidos.
+5. **Read the Active initiatives map** in the base root `CLAUDE.md` (walk upward
+   until you find the folder containing `worktrees/`). Cross-check the current
+   initiative with the map to recover the goal and other involved repos.
 
-6. **Reporte** de forma curta:
+6. **Report** briefly:
 
-   > Você está na frente **`<type>-<slug>`** (objetivo: …), repo origem
+   > You are in initiative **`<type>-<slug>`** (goal: …), origin repo
    > **`<repo>`**, branch **`<type>/<slug>`**.
-   > Outros repos desta frente: …. Outras frentes ativas: ….
+   > Other repos in this initiative: …. Other active initiatives: ….
 
-## Checagem rápida de coerência
+## Quick coherence check
 
-- Branch == nome da pasta da frente (com `-`→`/`)? Se não, avise (divergência).
-- Branch é `main`/`master`/`develop`? Se sim, **alerta**: você não deveria
-  trabalhar/commitar numa branch protegida dentro de uma worktree de frente.
+- Branch == initiative folder name (with `-`→`/`)? If not, warn (divergence).
+- Branch is `main`/`master`/`develop`? If yes, **alert**: you should not work/commit
+  on a protected branch inside an initiative worktree.

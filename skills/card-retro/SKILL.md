@@ -1,76 +1,78 @@
 ---
 name: card-retro
-description: Use ao FINALIZAR uma frente/card para registrar uma retrospectiva curta no vault Second Brain — gatilhos "registra a retro", "card-retro", "documenta a frente no second brain", "fecha o card no second brain". Garante (guard) que o README da task esteja atualizado, PEDE o link do card e as datas, e escreve daily-notes/<AAAA-MM>/<AAAA-MM-DD>-<slug>.md respondendo: o que fizemos, por quê, que problema resolve, pontas soltas e o que poderia ter sido feito melhor.
+description: Use when FINISHING an initiative/card to record a short retrospective in the Second Brain vault. Triggers: "record the retro", "card-retro", "document the initiative in second brain", "close the card in second brain". Ensures (guard) the task README is updated, ASKS for the card link and dates, and writes daily-notes/<YYYY-MM>/<YYYY-MM-DD>-<slug>.md answering: what we did, why we did it, what problem it solves, loose ends, and what could have been better.
 ---
 
 # card-retro
 
 ## Overview
 
-Registra a **retrospectiva de uma frente/card** no vault **Second Brain**
-(`~/Documents/Second Brain/daily-notes/<AAAA-MM>/`), um arquivo por card, com
-template **minimalista**. As respostas são **sintetizadas pela IA** a partir do
-trabalho feito na sessão; o **link do card e as datas são pedidos ao usuário** (nunca
-inventados).
+All skill operation, generated notes, prompts, and user-facing responses must be in English.
 
-A skill **vive no repo helix** (`skills/card-retro/`); o arquivo gerado mora **no
-vault** e **não** entra no git do helix.
+Records the **retrospective for an initiative/card** in the **Second Brain** vault
+(`~/Documents/Second Brain/daily-notes/<YYYY-MM>/`), one file per card, using a
+**minimalist** template. Answers are **synthesized by the AI** from the work done in
+the session; the **card link and dates are requested from the user** (never invented).
 
-## Regra de ouro
+The skill **lives in the helix repo** (`skills/card-retro/`); the generated file
+lives **in the vault** and **does not** enter helix git.
 
-1. **GUARD — README da task primeiro.** Antes de escrever a retro, o README do
-   módulo/repo tocado na frente **DEVE** refletir o que foi alterado. Se estiver
-   defasado, atualize-o antes de prosseguir. Sem README em dia, **não registre a retro**.
-2. **SEMPRE peça ao usuário** o link do card no Monday, a data de início e a data
-   de conclusão. **Nunca invente** essas três informações.
-3. **Template minimalista** — não adicione seções, frontmatter ou enfeites além do
-   `references/template.md`. Respostas curtas e diretas.
+## Golden rule
 
-## Procedimento
+1. **GUARD — task README first.** Before writing the retro, the README for the
+   module/repo touched by the initiative **MUST** reflect what changed. If stale,
+   update it before proceeding. Without an up-to-date README, **do not record the retro**.
+2. **ALWAYS ask the user** for the Monday card link, start date, and completion
+   date. **Never invent** these three pieces of information.
+3. **Minimalist template** — do not add sections, frontmatter, or decoration beyond
+   `references/template.md`. Keep answers short and direct.
 
-### 0. Guard — README da task atualizado (BLOQUEANTE)
+## Procedure
 
-Identifique o(s) README(s) do(s) módulo(s)/repo(s) alterados na frente (ex.:
-`src/modules/<x>/README.md` no repo tocado). Confira se já descrevem **o contexto
-atual do que foi alterado** nesta frente. Se **não** descrevem, atualize-os agora
-(mesmo estilo do documento existente, conciso). Só avance quando o README refletir a
-mudança. Se não houver README aplicável, declare isso e siga.
+### 0. Guard — task README updated (BLOCKING)
 
-### 1. Coletar do usuário (obrigatório)
+Identify the README(s) for the module(s)/repo(s) changed by the initiative (for
+example, `src/modules/<x>/README.md` in the touched repo). Check whether they
+already describe **the current context of what changed** in this initiative. If
+they **do not**, update them now (same style as the existing document, concise).
+Continue only when the README reflects the change. If there is no applicable
+README, state that and continue.
 
-Pergunte e **aguarde** as três respostas (não prossiga sem elas):
+### 1. Collect from the user (mandatory)
 
-- **Link do card** no Monday.
-- **Data de início** (`AAAA-MM-DD`).
-- **Data de conclusão** (`AAAA-MM-DD`).
+Ask and **wait** for the three answers (do not continue without them):
 
-### 2. Enriquecer pelo Monday (degradável)
+- **Card link** on Monday.
+- **Start date** (`YYYY-MM-DD`).
+- **Completion date** (`YYYY-MM-DD`).
 
-Extraia o `pulse id` do link e, via skill **monday-api**, busque **título** e
-**status** do card. Se a chamada falhar ou não houver token, **degrade**: use só o
-link e siga (status/título ficam vazios).
+### 2. Enrich through Monday (degradable)
 
-### 3. Derivar nome e destino
+Extract the `pulse id` from the link and, via the **monday-api** skill, fetch the
+card **title** and **status**. If the call fails or there is no token, **degrade**:
+use only the link and continue (status/title stay blank).
 
-- `slug`: kebab-case do título do card (ou do nome da frente, se sem título).
-- `mês`: `AAAA-MM` da **data de conclusão**.
-- Pasta: `~/Documents/Second Brain/daily-notes/<AAAA-MM>/` (crie se não existir).
-- Arquivo: `<AAAA-MM-DD-conclusão>-<slug>.md`.
+### 3. Derive name and destination
 
-### 4. Escrever a retro
+- `slug`: kebab-case from the card title (or initiative name, if no title).
+- `month`: `YYYY-MM` from the **completion date**.
+- Folder: `~/Documents/Second Brain/daily-notes/<YYYY-MM>/` (create if missing).
+- File: `<YYYY-MM-DD-completion>-<slug>.md`.
 
-Preencha `references/template.md` com o link, as datas, o status (se houver) e as
-**respostas sintetizadas da sessão** para as cinco perguntas:
+### 4. Write the retro
 
-1. **O que fizemos**
-2. **Por que fizemos**
-3. **Que problema resolve**
-4. **Pontas soltas** (o que ficou em aberto / não tratado)
-5. **O que poderia ter sido feito melhor**
+Fill `references/template.md` with the link, dates, status (if any), and the
+**session-synthesized answers** to the five questions:
 
-Respostas curtas e honestas — sem inflar. Se uma pergunta não tiver resposta real,
-diga isso em vez de inventar.
+1. **What we did**
+2. **Why we did it**
+3. **What problem it solves**
+4. **Loose ends** (what remained open / untreated)
+5. **What could have been better**
 
-### 5. Confirmar
+Short, honest answers — no inflation. If a question has no real answer, say that
+instead of inventing.
 
-Informe o caminho do arquivo criado. **Não** commite o arquivo do vault no repo helix.
+### 5. Confirm
+
+Report the created file path. **Do not** commit the vault file in the helix repo.
